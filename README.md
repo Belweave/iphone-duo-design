@@ -1,5 +1,7 @@
 # iphone-duo-design
 
+![iphone duo design skill: teach your agent the folding iphone](docs/images/cover.png)
+
 An agent skill and toolkit for building iOS apps that work well on **iPhone Duo**, across the compact outer display and the large inner one. It covers:
 - size classes and resizable layouts
 - bars that move to the side
@@ -33,7 +35,7 @@ Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo 
 | [`install/`](install) | `AGENTS.md` snippet (Codex and Cursor) and a Cursor project rule |
 | [`evals/`](evals) | Behavior evals and trigger evals for the skill |
 | [`docs/images/`](docs/images) | Screenshots of the preview tool |
-| Related: [FoyerKit](https://github.com/Belweave/FoyerKit) | A separate Swift package for Liquid Glass intro screens: welcome flows, feature tours and "what's new" screens. Add it with `.package(url: "https://github.com/Belweave/FoyerKit.git", from: "0.1.0")` |
+| Related: [FoyerKit](https://github.com/Belweave/FoyerKit) | A separate Swift package for a first-launch intro or welcome screen in Liquid Glass. Add it with `.package(url: "https://github.com/Belweave/FoyerKit.git", from: "0.1.0")` |
 
 ## Install
 
