@@ -30,6 +30,7 @@ Expanded the skill into a full iPhone Duo toolkit for coding agents.
   - Codex `.agents/skills` plus `AGENTS.md`
   - `npx skills add`
 - A "What's inside" table in the README, plus screenshots of the preview tool.
+- `SKILL.md` and the README now point to the related [FoyerKit](https://github.com/Belweave/FoyerKit) package (0.1.0) for Liquid Glass intro screens.
 - New evals for the linter, templates, preview tools, review prompt, migration and install, plus trigger cases.
 
 ### Corrected

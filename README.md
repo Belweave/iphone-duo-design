@@ -33,6 +33,7 @@ Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo 
 | [`install/`](install) | `AGENTS.md` snippet (Codex and Cursor) and a Cursor project rule |
 | [`evals/`](evals) | Behavior evals and trigger evals for the skill |
 | [`docs/images/`](docs/images) | Screenshots of the preview tool |
+| Related: [FoyerKit](https://github.com/Belweave/FoyerKit) | A separate Swift package for Liquid Glass intro screens: welcome flows, feature tours and "what's new" screens. Add it with `.package(url: "https://github.com/Belweave/FoyerKit.git", from: "0.1.0")` |
 
 ## Install
 
