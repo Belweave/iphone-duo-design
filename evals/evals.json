@@ -3,32 +3,35 @@
   "test_cases": [
     {
       "name": "adapt_existing_app",
-      "input": "Review this SwiftUI view and adapt it for iPhone Duo. It currently uses fixed frames and bottom toolbar.",
+      "input": "Review this SwiftUI view and adapt it for iPhone Duo. It currently uses fixed frames and a bottom toolbar.",
       "assertions": [
-        "Identifies fixed widths as problem",
-        "Recommends size classes (compact vs regular)",
-        "Suggests system toolbar for automatic vertical placement",
-        "Mentions safe area insets and fold avoidance"
+        "Identifies fixed widths as a problem and suggests container-relative sizing",
+        "Recommends size classes (compact width outer, regular width inner)",
+        "Keeps the toolbar in a navigation container so the system can present it vertically",
+        "Mentions safe area insets and fold avoidance",
+        "Suggests running scripts/duo-lint on the file"
       ]
     },
     {
       "name": "split_view_recommendation",
-      "input": "My mail-style app needs to show list and detail on the big inner screen but single pane when closed. How should I structure it?",
+      "input": "My mail-style app needs to show list and detail on the big inner screen but a single pane when closed. How should I structure it?",
       "assertions": [
-        "Recommends NavigationSplitView or equivalent",
-        "Notes automatic collapse on compact / outer display",
-        "Emphasizes consistent hierarchy across poses",
-        "Mentions fold adaptation of columns"
+        "Recommends NavigationSplitView or UISplitViewController",
+        "Notes automatic collapse on the outer display",
+        "Emphasizes a consistent hierarchy across poses",
+        "Mentions that standard split views adapt column widths to the fold",
+        "Points to templates/*/SplitViewCollapse.swift"
       ]
     },
     {
       "name": "fold_handling",
       "input": "Buttons keep landing in the center curve when the Duo is partially folded. What's the right way to fix this?",
       "assertions": [
-        "Points to Reserved Region API or system components",
-        "Explains interactive elements should avoid fold while scrollable content need not",
-        "Warns against dramatic rearrangements",
-        "Suggests testing in Device Hub"
+        "Prefers system components first",
+        "Names GeometryProxy.reservedRegions(kind:options:layoutDirectionBehavior:) or UIView.reservedRegions(kind:options:) with the .division kind",
+        "Filters or checks isActive; mentions the fold is inactive with zero width when flat",
+        "Says scrollable content need not avoid the fold and warns against dramatic rearrangements",
+        "Suggests testing with Device Hub's Partially Open button"
       ]
     },
     {
@@ -36,9 +39,113 @@
       "input": "On the closed Duo the screen is shorter. Where should my tab bar and nav buttons go?",
       "assertions": [
         "Controls move to the side to maximize vertical space",
-        "Exception for inner portrait",
-        "System handles this with standard components",
-        "Content offsets via safe areas"
+        "Notes the inner display in portrait is the exception with horizontal bars",
+        "Says standard components get this automatically",
+        "Content offsets via safe areas",
+        "Mentions title plus symbol for toolbar items"
+      ]
+    },
+    {
+      "name": "no_invented_apis",
+      "input": "What's the exact iPhone Duo screen size in points, and what's the API to get the hinge width so I can hard-code my layout?",
+      "assertions": [
+        "States Apple does not publish point dimensions or the folded fold width",
+        "Does not invent numbers or API names",
+        "Recommends reading reserved region frames and safe area insets at runtime",
+        "References references/sources.md or api-index.md"
+      ]
+    },
+    {
+      "name": "size_class_table",
+      "input": "What size classes does iPhone Duo report on each display and orientation?",
+      "assertions": [
+        "Outer portrait: compact horizontal, regular vertical",
+        "Outer landscape: compact horizontal, compact vertical",
+        "Inner: regular horizontal, regular vertical",
+        "Says Apple doesn't state Split View half size classes on these pages",
+        "Advises against branching on interface orientation"
+      ]
+    },
+    {
+      "name": "run_linter",
+      "input": "Scan my iOS project at ./App for iPhone Duo issues and summarize what to fix.",
+      "assertions": [
+        "Runs scripts/duo-lint ./App (optionally --format json)",
+        "Groups findings by rule id and severity",
+        "Treats findings as heuristics to confirm in code",
+        "Proposes fixes using templates or api-index APIs"
+      ]
+    },
+    {
+      "name": "arrangement_choice",
+      "input": "I have a video player with a chat panel layered over it in a ZStack. How should it behave when the Duo folds?",
+      "assertions": [
+        "Recommends an overlay ArrangementView (or UIArrangementViewController with .overlay)",
+        "Explains primary goes trailing/bottom and secondary leading/top when partially open",
+        "Mentions overlayArrangementZIndex or state(for:).zIndex for a collapsed form",
+        "Keeps navigation outside and avoids nesting in List/ScrollView",
+        "Flags that a dedicated 'collapse secondary' API is not documented on the API pages"
+      ]
+    },
+    {
+      "name": "single_button_sheet",
+      "input": "My settings sheet has only a Done button. On the closed Duo it moves to the side and looks odd. Can I keep it horizontal?",
+      "assertions": [
+        "Uses toolbarVerticalBehavior(.disabled) in SwiftUI or preferredVerticalBarBehavior returning .disabled in UIKit",
+        "Notes the sheet then stops short of the front camera",
+        "Advises treating it as a stable choice, not toggled by state",
+        "Points to templates/*/SheetVerticalBarOptOut.swift"
+      ]
+    },
+    {
+      "name": "game_fill",
+      "input": "My landscape-locked game letterboxes on the Duo's inner display. What should I do?",
+      "assertions": [
+        "Fill the screen in every pose; prefer changing aspect ratio over letterboxing",
+        "If bars are unavoidable, fill them with artwork",
+        "Keep text and control sizes consistent",
+        "Mentions the inner display doesn't honor supported orientations (app scales)",
+        "Says Apple documents no Duo-specific game API on these pages"
+      ]
+    },
+    {
+      "name": "preview_tools",
+      "input": "How can I preview my screens for iPhone Duo without the device?",
+      "assertions": [
+        "Recommends the Device Hub iPhone Duo simulator for fold, cameras and bars",
+        "Offers templates/swiftui/DuoPreviewMatrix.swift for size-class branches",
+        "Offers tools/duo-preview.html for screenshot overlays",
+        "Notes neither preview helper invents device dimensions"
+      ]
+    },
+    {
+      "name": "review_screen",
+      "input": "Review our checkout screen for iPhone Duo and tell me if it's ready to ship.",
+      "assertions": [
+        "Follows prompts/review-screen.md",
+        "Runs duo-lint, scores references/review-rubric.md areas 0-3, applies the ship bar",
+        "Lists applicable test-plan case IDs with Device Hub steps",
+        "Outputs the rubric report template and unverified assumptions"
+      ]
+    },
+    {
+      "name": "migration",
+      "input": "We have a 5-year-old UIKit app. Give me a plan to support iPhone Duo.",
+      "assertions": [
+        "Follows references/migration-guide.md order: SDK/baseline, screen/idiom/orientation, resizing, bars, sheets, fold, games/camera, verify",
+        "Mentions Xcode 27.1 / iOS 27.1 SDK for full-screen and vertical bars",
+        "Replaces UIScreen.main and custom UIToolbar usage",
+        "Ends with test plan and rubric"
+      ]
+    },
+    {
+      "name": "install_paths",
+      "input": "How do I install this skill in Claude Code, Cursor and Codex?",
+      "assertions": [
+        "Claude Code: plugin marketplace add Belweave/iphone-duo-design then install iphone-duo-design@belweave, or ~/.claude/skills",
+        "Cursor: ~/.cursor/skills or .cursor/skills (optionally the .mdc rule or AGENTS.md)",
+        "Codex: ~/.agents/skills or repo .agents/skills, plus AGENTS.md",
+        "Optionally npx skills add Belweave/iphone-duo-design"
       ]
     }
   ]

@@ -1,33 +1,20 @@
 {
   "skill": "iphone-duo-design",
   "test_cases": [
-    {
-      "input": "How do I design my app for the iPhone Duo foldable?",
-      "should_trigger": true
-    },
-    {
-      "input": "Adapt this layout for iPhone Duo outer and inner displays",
-      "should_trigger": true
-    },
-    {
-      "input": "Controls need to move to the side on the Duo and avoid the fold",
-      "should_trigger": true
-    },
-    {
-      "input": "What's the best size class strategy for iPhone Duo poses?",
-      "should_trigger": true
-    },
-    {
-      "input": "How do I make a regular iPhone app?",
-      "should_trigger": false
-    },
-    {
-      "input": "Design a website landing page",
-      "should_trigger": false
-    },
-    {
-      "input": "Android foldable phone UI tips",
-      "should_trigger": false
-    }
+    { "input": "How do I design my app for the iPhone Duo foldable?", "should_trigger": true },
+    { "input": "Adapt this layout for iPhone Duo outer and inner displays", "should_trigger": true },
+    { "input": "Controls need to move to the side on the Duo and avoid the fold", "should_trigger": true },
+    { "input": "What's the best size class strategy for iPhone Duo poses?", "should_trigger": true },
+    { "input": "Lint my Swift project for iPhone Duo problems", "should_trigger": true },
+    { "input": "How do I use ArrangementView with an overlay style?", "should_trigger": true },
+    { "input": "Use reservedRegions to keep my shutter button off the hinge", "should_trigger": true },
+    { "input": "Review this screen for the foldable iPhone before we ship", "should_trigger": true },
+    { "input": "Make my SwiftUI sheet keep a horizontal toolbar on the closed Duo", "should_trigger": true },
+    { "input": "What screenshot sizes does App Store Connect need for iPhone Duo?", "should_trigger": true },
+    { "input": "How do I make a regular iPhone app?", "should_trigger": false },
+    { "input": "Design a website landing page", "should_trigger": false },
+    { "input": "Android foldable phone UI tips", "should_trigger": false },
+    { "input": "Set up a Python linter for my Django project", "should_trigger": false },
+    { "input": "Write a Kotlin Jetpack Compose layout for a Galaxy Fold", "should_trigger": false }
   ]
 }

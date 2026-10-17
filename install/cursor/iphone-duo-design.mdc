@@ -1,0 +1,11 @@
+---
+description: iPhone Duo layout rules for SwiftUI and UIKit code. Apply when editing iOS views, view controllers, toolbars, sheets, split views or grids.
+globs: "**/*.swift"
+alwaysApply: false
+---
+
+- Follow the iPhone Duo skill in `.cursor/skills/iphone-duo-design/SKILL.md`, or wherever you installed it.
+- Branch layout on `horizontalSizeClass` / `verticalSizeClass` and container bounds. Don't use `UIScreen.main`, `userInterfaceIdiom` or interface orientation.
+- Use system bars from navigation containers. Give toolbar items a title and a symbol.
+- Keep custom interactive views off active `.division` reserved regions (`GeometryProxy.reservedRegions(kind:)` / `UIView.reservedRegions(kind:options:)`).
+- After editing Swift UI code, run `scripts/duo-lint` from the skill on the changed files.

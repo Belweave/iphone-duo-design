@@ -1,148 +1,65 @@
 ---
 name: iphone-duo-design
-description: "Design and adapt iOS apps for iPhone Duo foldable form factor. Use when creating, reviewing, or updating layouts for dual outer/inner displays, size classes, vertical controls, fold avoidance, split views, arrangement views, or resizable iPhone experiences."
-type: knowledge
-lifecycle: active
+description: "Design, build, lint and review iOS apps for iPhone Duo, Apple's foldable iPhone. Use when adapting SwiftUI or UIKit layouts for the outer and inner displays, size classes, vertical (side) bars, the fold and reserved regions, split views, ArrangementView, sheets, Split View multitasking, games, or when reviewing or testing an app on iPhone Duo."
+license: MIT
 ---
 
-# iPhone Duo Design — Adaptive Layouts for Foldable iPhone
+# iPhone Duo design toolkit
 
-Guide for designing and adapting iOS apps so they feel native and continuous across iPhone Duo’s outer (closed) and inner (open) displays, all poses, and Split View multitasking. Based on Apple’s Design for iPhone Duo principles.
+This skill helps you make iOS apps feel native on iPhone Duo, across the compact **outer** display (closed), the large **inner** display (open), every pose, and Split View multitasking. It's grounded only in Apple's pages; see `references/sources.md`. Never invent API names, SDK versions, tools or dimensions. If Apple doesn't document something, say so.
 
-## Core Principles
+## Route the task
 
-1. **Design for two size classes, not every pose.**  
-   Compact width = outer display. Regular width = inner display. These two fundamentals cover every pose. Do not invent a custom layout per pose.
+| The user wants to… | Do this |
+|---|---|
+| Understand the rules | Read the principles below, then `references/hig-summary.md` |
+| Find the exact API for something | `references/api-index.md`. Only name APIs listed there |
+| Scan a Swift project for problems | Run `scripts/duo-lint <paths>` (Python 3 stdlib). Add `--format json` for machine output and `--list-rules` for the rules. Confirm each finding by reading the code |
+| Write new SwiftUI or UIKit code | Start from `templates/` (see the table below) |
+| Migrate an existing app | Follow `references/migration-guide.md` step by step |
+| Check size-class branches in Xcode previews | `templates/swiftui/DuoPreviewMatrix.swift` |
+| Eyeball a screenshot with fold, side-control, Split View and arrangement overlays | Open `tools/duo-preview.html` in a browser (offline, no dependencies) |
+| Test on the simulator or a device | `references/test-plan.md` (Device Hub, pose by pose) |
+| Review or grade a screen | `prompts/review-screen.md`, which drives `references/review-rubric.md` + `references/test-plan.md`. Designers can use `references/design-review-checklist.md` |
+| Check what is verified vs. unverified | `references/sources.md` (claim ledger) |
 
-2. **Build freely resizable layouts.**  
-   Use layout margins, horizontal safe area insets, and size classes. Avoid fixed widths, breakpoints, or metrics tied to a specific screen or device.
+### Templates (`templates/swiftui/` and `templates/uikit/`)
+| Need | SwiftUI | UIKit |
+|---|---|---|
+| Size-class root (outer compact / inner regular) | `SizeClassRoot.swift` | `SizeClassRootViewController.swift` |
+| List and detail that collapses when closed | `SplitViewCollapse.swift` | `SplitViewCollapse.swift` |
+| Split and overlay arrangements (iOS 27.1) | `ArrangementPatterns.swift` | `ArrangementPatterns.swift` |
+| Fold-aware custom controls, camera-aware badge, even-column grid | `FoldAwareControls.swift` | `FoldAwareControlView.swift` |
+| Single-button sheet that opts out of the vertical bar | `SheetVerticalBarOptOut.swift` | `SheetVerticalBarOptOut.swift` |
+| Game surface that fills every pose | `GameFill.swift` | `GameFillViewController.swift` |
+| Bar items organized for vertical presentation | `VerticalBars.swift` | `VerticalBars.swift` |
+| Preview matrix over Apple's size-class configurations | `DuoPreviewMatrix.swift` | — |
 
-3. **Maintain one consistent experience.**  
-   Same functionality, hierarchy, and controls across displays and poses. People open and close the device frequently—do not hide features or change core interactions based on pose.
+The templates target Xcode 27.1 and the iOS 27.1 SDK for the Duo-specific symbols. They haven't been compiled in this repository's CI (there's no iOS SDK on Linux). Each file cites its Apple sources and marks anything Apple doesn't document.
 
-4. **Maximize vertical content space.**  
-   On the shorter/wider outer display (and inner landscape), controls move to the side. Prefer system components so this happens automatically.
+## Core principles
 
-5. **Respect the fold.**  
-   When partially folded, the center curve is a reserved region. Interactive elements avoid it; scrollable content does not need to.
+1. **Design for two size classes, not every pose.** Compact width is the outer display and regular width is the inner display (Tech Talk 111466). Outer portrait is compact/regular, outer landscape compact/compact, and inner regular/regular (Tech Talk 111461). Don't build a custom layout per pose.
+2. **Build freely resizable layouts.** Use layout margins, safe-area insets and size classes. Size relative to the container. Don't use fixed widths, `UIScreen.main`, `userInterfaceIdiom` or interface orientation for layout. The inner display doesn't honor supported orientations.
+3. **Keep one consistent experience.** The same functionality, controls and hierarchy appear on both displays. The inner display may add one hierarchy level. Never tie a feature to a pose.
+4. **Let the system put bars on the side.** Toolbars, tab bars and navigation controls go vertical everywhere except the inner display in portrait. Use navigation containers, give each item a title and a symbol, group items, set priorities, and use the system overflow menu.
+5. **Respect reserved regions.** These are the outer camera (always), the inner camera (while active) and the fold (when partially open). System components avoid them automatically. For custom interactive views, query `reservedRegions(kind: .division / .occlusion)` and make small moves. Scrolling content may cross the fold. Prefer even grid column counts.
+6. **Use the right container.** Use a split view for list and detail. Use `ArrangementView` / `UIArrangementViewController` (split for HStack or VStack layouts, overlay for ZStack layouts) for two-pane content, with navigation outside.
 
-## Quick Checklist
+## Quick checklist
+- [ ] Layout is driven by size classes and container bounds, with no orientation, idiom or main-screen checks (`duo-lint` DUO001–004)
+- [ ] No fixed widths; safe areas are handled per side (DUO002, DUO007)
+- [ ] Bars come from navigation containers, each item has a title and a symbol, items are grouped and prioritized, and the system overflow menu is used (DUO005, DUO010–012)
+- [ ] Interactive custom views stay off active fold and camera regions, and grids are even (DUO008, DUO009)
+- [ ] `ignoresSafeArea` is used only on backgrounds (DUO006). Arrangements aren't nested in a List, ScrollView or NavigationSplitView (DUO013)
+- [ ] Sheets keep the default vertical bar unless it's a deliberate single-button opt-out
+- [ ] Built with Xcode 27.1 and the iOS 27.1 SDK, and tested in **Device Hub** with the iPhone Duo simulator: Closed, Partially Open and Open, rotated, Split View on both sides, and pinned PiP
 
-- [ ] Layout driven by compact (outer) vs regular (inner) size class only
-- [ ] Uses layout margins + safe area insets (no hard-coded frames)
-- [ ] Standard system bars/toolbars/tab bars (get vertical placement free)
-- [ ] Interactive elements clear of fold when partially open (system components or Reserved Region API)
-- [ ] Split View / Arrangement View used where hierarchy benefits from side-by-side
-- [ ] Sheets, alerts, menus use system behaviors for fold avoidance
-- [ ] Tested in Device Hub across closed, open, partial fold, portrait/landscape, Split View
-
-## Size Classes & Dynamic Layouts
-
-| Display / Context              | Horizontal Size Class | Vertical Size Class | Notes |
-|--------------------------------|-----------------------|---------------------|-------|
-| Outer (closed) portrait        | Compact               | Regular             | Controls on right side |
-| Outer landscape                | Compact               | Compact             | — |
-| Inner (open) portrait          | Regular               | Regular             | Horizontal bars OK |
-| Inner landscape                | Regular               | Compact             | Controls remain on side for continuity |
-| Split View (each half)         | Varies                | Varies              | Controls on outer edge of each app |
-
-**Do:**
-- Target size classes exclusively for layout decisions.
-- Let existing layouts expand into available space.
-- Use GeometryReader / trait collection / view.bounds for runtime sizes.
-- Re-evaluate layout on size changes (fold/unfold mid-session).
-
-**Don’t:**
-- Design custom layouts for book pose, table pose, standing pose, etc.
-- Use UIScreen.main.bounds, fixed widths, or interface orientation for layout.
-- Assume a specific aspect ratio or single display.
-
-## Vertical Controls
-
-System places toolbars, tab bars, and navigation on the side (except inner portrait) to maximize content height and keep controls thumb-reachable.
-
-**Placement rules:**
-- Top of vertical axis: primary navigation (Back, Close) + prominent actions (Done).
-- Bottom-aligned: tab bar and bottom toolbar items.
-- Wide items (text buttons, segmented controls) stay in place—they do not move to the side.
-- Live Activities and status bar share the vertical space; overflow collapses into menu.
-- In Split View: each app’s controls sit on its outer edge.
-
-**Asymmetry:**
-- Content is offset from the control edge via safe area insets.
-- Full-bleed / immersive non-scrolling content can center on full display if interactive elements stay clear of controls.
-- Mix: full-width background/header + inset scrollable foreground.
-
-**Priority & grouping:**
-- Assign visibility priorities so frequently used items stay visible longer.
-- Preserve original groupings; system inserts spacing between top and bottom groups.
-
-## Fold & Reserved Regions
-
-Reserved regions content should avoid or adapt to:
-- Outer front camera (always present; expands for Dynamic Island / Live Activities)
-- Inner front camera (only when active)
-- Folding region (center curve when partially open)
-
-**Behaviors:**
-- System components (sheets, alerts, menus, toolbars, split views) automatically avoid the fold.
-- Prefer these over custom components.
-- For custom UI: use Reserved Region API (SwiftUI `reservedRegions` / UIKit `reservedRegions`) to query frames and offset interactive elements.
-- Prefer even column counts in grids so content splits cleanly.
-- Avoid dramatic rearrangements—small shifts only. Controls that jump are hard to track.
-
-**Partial fold poses:**
-- Landscape book: curve becomes natural divider; content shifts left/right.
-- Portrait table: interactive elements prefer bottom half for stability and reach.
-
-## Layout Patterns for Inner Display
-
-Do not simply stretch a compact layout. Useful approaches:
-
-1. **Split views** — Show multiple hierarchy levels simultaneously (list + detail). Collapse to single pane on outer display. Standard NavigationSplitView / UISplitViewController handle fold automatically.
-2. **Content reflow** — Vertical stack on compact becomes multi-column on regular (e.g., Music-style).
-3. **Sidebar tab bar** — For information-dense apps (Health-style). Only when it improves hierarchy; not for every app.
-4. **Arrangement views** — Two-view containers (primary + secondary) that adapt:
-   - Split: side-by-side when wider, stacked when taller.
-   - Overlay: primary over secondary when flat; side-by-side when folded.
-   - Keep navigation outside the arrangement view.
-
-Optional hands-free table pose: media at top, controls on stable base. Only if it preserves the same controls and hierarchy as other poses. Never gate functionality on this pose.
-
-## Sheets & Overlays
-
-- Outer display: sheet controls move to side by default. Disable vertical bar behavior for sheets with a single toolbar button (sheet then stops short of camera; status bar repositions).
-- Inner display: standard horizontal bars in both orientations.
-- Partial fold: sheets (and many other components) slide aside to avoid the curve.
-
-## Games & Immersive Content
-
-- Lock to one orientation if needed, but fill the screen across poses.
-- Prefer changing aspect ratio over letter/pillarboxing; if padding is unavoidable, fill it with artwork.
-- Keep control and text sizes consistent while resizing.
-
-## Implementation Notes (SwiftUI / UIKit)
-
-- Prefer system containers: NavigationStack, NavigationSplitView, TabView, ArrangementView, standard toolbars.
-- Size class environment / traitCollection for adaptations.
-- Safe area insets for content offset.
-- Reserved Region APIs for fold/camera avoidance on custom views.
-- Build with iOS 27.1+ SDK for full-screen extension and vertical bar support.
-- Test in Xcode Device Hub across all poses.
-
-See `references/hig-summary.md` for condensed official guidance and `references/patterns.md` for concrete layout examples.
-
-## Common Issues
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| Content hidden under side controls | Missing safe area insets | Align to horizontal safe area; let system inset |
-| Layout breaks on fold | Fixed widths or one-time size read | Use size classes + re-layout on geometry change; Reserved Region |
-| Controls jump or disappear between poses | Custom bar placement | Use system toolbars/tab bars; preserve relative order |
-| Features missing on outer display | Pose-specific hierarchy | Keep same controls/functionality; use split view collapse |
-| Awkward stretch on inner display | Only compact layout | Add regular-width adaptation (split, reflow, or sidebar) |
-| Interactive elements in fold | Custom components ignoring reserved regions | Use system components or query Reserved Region API |
+## Not published by Apple (never hard-code or guess)
+Apple doesn't publish point dimensions, scale factor, safe-area or margin values, the side-control width, the folded fold width (it's zero when flat), or the camera region size. Read live values at runtime instead. Apple also never states the fold's axis in words; see `references/sources.md`.
 
 ## Sources
-
-Derived from Apple Developer session “Design for iPhone Duo” and official Human Interface Guidelines / Preparing your app for iPhone Duo documentation. Always verify against latest Apple docs and Xcode Device Hub.
+- HIG, Designing for iPhone Duo: https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo
+- Preparing your app for iPhone Duo: https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo
+- Tech Talk, Design for iPhone Duo: https://developer.apple.com/videos/play/tech-talks/111466/
+- Related Tech Talks 111461 to 111463, Device Hub and the API pages: `references/sources.md` and `references/api-index.md`

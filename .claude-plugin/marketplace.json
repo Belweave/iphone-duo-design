@@ -1,0 +1,12 @@
+{
+  "name": "belweave",
+  "description": "Agent skills published by belweave",
+  "owner": { "name": "belweave" },
+  "plugins": [
+    {
+      "name": "iphone-duo-design",
+      "source": "./",
+      "description": "iPhone Duo toolkit: Apple-grounded guidance, duo-lint, SwiftUI/UIKit templates, preview tool, test plan and rubric."
+    }
+  ]
+}

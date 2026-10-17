@@ -1,0 +1,496 @@
+#!/usr/bin/env python3
+"""duo-lint: a dependency-free scanner that flags Swift code likely to break on iPhone Duo.
+
+It is a heuristic, line-based checker (Python 3.8+ standard library only). It does not
+compile or type-check Swift, so treat every finding as "look here", not as proof.
+Each rule cites the Apple page it is based on; see references/sources.md.
+
+Usage:
+  scripts/duo-lint [PATH ...] [--format text|json] [--min-width N] [--strict]
+                   [--disable RULE[,RULE]] [--list-rules] [--exit-zero]
+
+Suppress one finding with a trailing or preceding comment:
+  // duo-lint:disable=DUO002            (this line or the next line)
+  // duo-lint:disable-file=DUO007       (whole file)
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+HIG = "https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo"
+PREP = "https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo"
+TT_PREP = "https://developer.apple.com/videos/play/tech-talks/111461/"
+TT_POSE = "https://developer.apple.com/videos/play/tech-talks/111463/"
+TT_BAR = "https://developer.apple.com/videos/play/tech-talks/111462/"
+UISCREEN_MAIN = "https://developer.apple.com/documentation/uikit/uiscreen/main"
+
+RULES = {
+    "DUO001": dict(
+        name="main-screen",
+        severity="error",
+        message="UIScreen.main is ambiguous on a two-display device (Apple discourages it).",
+        fix="Use the view's or scene's bounds (GeometryReader / view.bounds), traitCollection.displayScale "
+            "for scale, or window?.windowScene?.screen when you truly need the screen.",
+        source=TT_PREP + " ; " + UISCREEN_MAIN,
+    ),
+    "DUO002": dict(
+        name="fixed-width",
+        severity="warning",
+        message="Fixed width of {value} pt. Layouts must resize between the outer and inner displays, "
+                "Split View and Picture in Picture.",
+        fix="Size relative to the container: use flexible frames (maxWidth: .infinity), layout margins, "
+            "safe area insets, Auto Layout constraints to guides, or size-class branches.",
+        source=HIG + " ; " + PREP,
+    ),
+    "DUO003": dict(
+        name="orientation-layout",
+        severity="warning",
+        message="Layout decision based on device or interface orientation. The inner display doesn't "
+                "honor your supported interface orientations.",
+        fix="Branch on horizontalSizeClass / verticalSizeClass (SwiftUI environment or UITraitCollection) "
+            "or on the container's size instead of orientation.",
+        source=PREP + " ; " + TT_PREP,
+    ),
+    "DUO004": dict(
+        name="idiom-layout",
+        severity="warning",
+        message="Layout decision based on userInterfaceIdiom. Apple says not to use the idiom for layout.",
+        fix="Use size classes and the container's bounds; iPhone Duo is still the phone idiom on both displays.",
+        source=PREP,
+    ),
+    "DUO005": dict(
+        name="custom-bar",
+        severity="warning",
+        message="Standalone {value}. The system presents bars vertically only when they come from "
+                "navigation containers, not custom bar instances.",
+        fix="Set toolbarItems / navigationItem on a view controller inside a UINavigationController "
+            "(or UITabBarController); in SwiftUI attach .toolbar { } inside a NavigationStack or NavigationSplitView.",
+        source=PREP + " ; " + TT_BAR,
+    ),
+    "DUO006": dict(
+        name="safe-area-ignored-on-controls",
+        severity="warning",
+        message="Safe area ignored on a view that appears to contain interactive controls. "
+                "Side controls and the outer camera can cover them.",
+        fix="Keep interactive foreground content inside the safe area; apply .ignoresSafeArea() only to "
+            "background layers (e.g. .background { Image(...).ignoresSafeArea() }).",
+        source=TT_PREP + " ; " + HIG,
+    ),
+    "DUO007": dict(
+        name="symmetric-insets",
+        severity="warning",
+        message="Assumes opposite safe area insets are equal. On iPhone Duo they are often asymmetric.",
+        fix="Handle each side independently, e.g. view.bounds.inset(by: view.safeAreaInsets).width.",
+        source=TT_PREP,
+    ),
+    "DUO008": dict(
+        name="odd-grid-columns",
+        severity="info",
+        message="Grid with an odd number of columns ({value}). The fold divides the inner display.",
+        fix="Prefer an even column count when a division reserved region is present (query "
+            "reservedRegions(kind: .division, options: .includeInactive)).",
+        source=HIG + " ; " + TT_POSE,
+    ),
+    "DUO009": dict(
+        name="reserved-regions-ignored",
+        severity="warning",
+        message="Interactive view positioned manually ({value}) in a file that never queries reserved regions. "
+                "A centered or absolutely placed control can land in the fold.",
+        fix="SwiftUI: read GeometryProxy.reservedRegions(kind: .division) (and .occlusion for the camera) and move "
+            "the control off active regions. UIKit: use UIView.reservedRegions(kind:options:). Or use a system "
+            "component/container that avoids the fold automatically.",
+        source=PREP + " ; " + TT_POSE,
+    ),
+    "DUO010": dict(
+        name="custom-overflow-menu",
+        severity="info",
+        message="Custom ellipsis menu. Apple reserves the ellipsis for the system overflow menu.",
+        fix="Move actions into the system overflow (SwiftUI ToolbarOverflowMenu, UIKit "
+            "navigationItem.additionalOverflowItems), and give other menus a distinct symbol.",
+        source=HIG + " ; " + PREP,
+    ),
+    "DUO011": dict(
+        name="text-only-toolbar-item",
+        severity="info",
+        message="Toolbar button with a title but no symbol. Title-only items are not presented vertically.",
+        fix="Provide both: Button(\"Title\", systemImage: \"symbol\") or a Label. Keep text-only on purpose "
+            "only when the text itself matters.",
+        source=PREP + " ; " + HIG,
+    ),
+    "DUO012": dict(
+        name="manual-bar-spacing",
+        severity="info",
+        message="Fixed spacing between bar items. Groups add and adapt spacing automatically.",
+        fix="Group related items with ToolbarItemGroup (SwiftUI) or UIBarButtonItemGroup (UIKit) instead "
+            "of fixed spacers.",
+        source=HIG,
+    ),
+    "DUO013": dict(
+        name="arrangement-in-scroll-or-split",
+        severity="warning",
+        message="ArrangementView placed inside {value}. Apple says to avoid this; part of the view can become inaccessible.",
+        fix="Put the ArrangementView at the content level and wrap it in navigation (NavigationStack/TabView), "
+            "not inside List, ScrollView or NavigationSplitView.",
+        source=PREP + " ; " + TT_POSE,
+    ),
+}
+
+SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}
+
+DISABLE_RE = re.compile(r"duo-lint:disable=([A-Z0-9_,\s]+)")
+DISABLE_FILE_RE = re.compile(r"duo-lint:disable-file=([A-Z0-9_,\s]+)")
+
+
+def strip_comments_and_strings(text):
+    """Return (code_lines, raw_lines). Comments are removed; string literal contents are
+    replaced by spaces except that we keep a parallel copy with strings intact for rules
+    that need them. Line count and columns are preserved."""
+    out_code = []
+    out_keep = []  # comments removed, strings kept
+    i, n = 0, len(text)
+    block_depth = 0
+    in_str = False
+    multiline_str = False
+    code_buf, keep_buf = [], []
+    while i < n:
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+        if c == "\n":
+            out_code.append("".join(code_buf))
+            out_keep.append("".join(keep_buf))
+            code_buf, keep_buf = [], []
+            if in_str and not multiline_str:
+                in_str = False
+            i += 1
+            continue
+        if block_depth:
+            if c == "*" and nxt == "/":
+                block_depth -= 1
+                code_buf.append("  "); keep_buf.append("  "); i += 2; continue
+            if c == "/" and nxt == "*":
+                block_depth += 1
+                code_buf.append("  "); keep_buf.append("  "); i += 2; continue
+            code_buf.append(" "); keep_buf.append(" "); i += 1; continue
+        if in_str:
+            if c == "\\" and i + 1 < n and text[i + 1] != "\n":
+                code_buf.append("  "); keep_buf.append(text[i:i + 2]); i += 2; continue
+            if multiline_str and text.startswith('"""', i):
+                in_str = False; multiline_str = False
+                code_buf.append('"""'); keep_buf.append('"""'); i += 3; continue
+            if not multiline_str and c == '"':
+                in_str = False
+                code_buf.append('"'); keep_buf.append('"'); i += 1; continue
+            code_buf.append(" "); keep_buf.append(c); i += 1; continue
+        if c == "/" and nxt == "/":
+            # line comment: drop to end of line
+            j = text.find("\n", i)
+            j = n if j == -1 else j
+            pad = " " * (j - i)
+            code_buf.append(pad); keep_buf.append(pad); i = j; continue
+        if c == "/" and nxt == "*":
+            block_depth = 1
+            code_buf.append("  "); keep_buf.append("  "); i += 2; continue
+        if text.startswith('"""', i):
+            in_str = True; multiline_str = True
+            code_buf.append('"""'); keep_buf.append('"""'); i += 3; continue
+        if c == '"':
+            in_str = True
+            code_buf.append('"'); keep_buf.append('"'); i += 1; continue
+        code_buf.append(c); keep_buf.append(c); i += 1
+    out_code.append("".join(code_buf))
+    out_keep.append("".join(keep_buf))
+    return out_code, out_keep
+
+
+def _num(s):
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+# ---- simple per-line patterns -------------------------------------------------
+P_MAIN_SCREEN = re.compile(r"\bUIScreen\s*\.\s*main\b")
+P_FRAME_WIDTH = re.compile(r"\.frame\s*\([^)]*?\b(width|minWidth|idealWidth)\s*:\s*(\d+(?:\.\d+)?)")
+P_WIDTH_ANCHOR = re.compile(r"widthAnchor\s*\.\s*constraint\s*\(\s*equalToConstant\s*:\s*(\d+(?:\.\d+)?)")
+P_CGRECT_WIDTH = re.compile(r"\bCG(?:Rect|Size)\s*\([^)]*?\bwidth\s*:\s*(\d+(?:\.\d+)?)")
+P_ORIENTATION = re.compile(
+    r"\bUIDevice\s*\.\s*current\s*\.\s*orientation\b|\binterfaceOrientation\b|\.isLandscape\b|\.isPortrait\b"
+    r"|\bUIInterfaceOrientation\s*\.\s*(?:portrait|landscape)|\bstatusBarOrientation\b")
+P_SUPPORTED_ORIENT_DECL = re.compile(r"\bsupportedInterfaceOrientations\b")
+P_IDIOM = re.compile(r"\buserInterfaceIdiom\b")
+P_CUSTOM_BAR = re.compile(r"\b(UIToolbar|UINavigationBar|UITabBar)\s*\(")
+P_IGNORE_SAFE = re.compile(r"\.(ignoresSafeArea|edgesIgnoringSafeArea)\s*\(")
+P_SYMMETRIC = re.compile(
+    r"safeAreaInsets\s*\.\s*(left|right|top|bottom)\s*\*\s*2\b|\b2\s*\*\s*[\w.]*safeAreaInsets\s*\.\s*(left|right|top|bottom)")
+P_GRID_REPEAT = re.compile(r"Array\s*\(\s*repeating\s*:\s*GridItem\b.*?count\s*:\s*(\d+)")
+P_GRID_COUNT_LAYOUT = re.compile(
+    r"NSCollectionLayoutGroup\s*\.\s*horizontal\s*\(.*?(?:repeatingSubitem|subitem)\s*:\s*\w+\s*,\s*count\s*:\s*(\d+)")
+P_GRID_ITEM = re.compile(r"\bGridItem\s*\(")
+P_COLUMNS_ARRAY = re.compile(r"\bcolumns\s*:\s*\[")
+P_POSITION = re.compile(r"\.position\s*\(\s*x\s*:")
+P_CENTER_ASSIGN = re.compile(r"\.center\s*=\s*CGPoint\s*\(|\.center\s*=\s*\w+\s*\.\s*center\b")
+P_FRAME_ASSIGN = re.compile(r"\b(\w+)\s*\.\s*frame\s*=\s*CGRect\s*\(")
+P_INTERACTIVE_NAME = re.compile(r"(?i)(button|control|toggle|slider|picker|field|switch|stepper)")
+P_INTERACTIVE_SWIFTUI = re.compile(
+    r"\b(Button|Toggle|Slider|Stepper|Picker|TextField|SecureField|Menu|Link|DatePicker|ColorPicker|PasteButton|ShareLink)\s*[\({]")
+P_RESERVED = re.compile(r"\breservedRegions\s*\(|\bReservedRegion\b")
+P_ELLIPSIS_MENU = re.compile(r"\"ellipsis(?:\.circle(?:\.fill)?)?\"")
+P_TOOLBAR_OPEN = re.compile(r"\.toolbar\s*\{")
+P_TEXT_BUTTON = re.compile(r"\bButton\s*\(\s*\"[^\"]*\"\s*\)|\bButton\s*\(\s*\"[^\"]*\"\s*,\s*action\s*:")
+P_FIXED_SPACE = re.compile(r"\.fixedSpace\b|\bfixedSpace\s*\(")
+P_CONTAINER_OPEN = re.compile(r"\b(ScrollView|List|NavigationSplitView|LazyVStack|LazyHStack|Form)\b[^{}]*\{")
+P_ARRANGEMENT = re.compile(r"\bArrangementView\b")
+
+
+def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
+    raw_lines = text.split("\n")
+    code, keep = strip_comments_and_strings(text)
+    findings = []
+
+    file_disabled = set(disabled)
+    for raw in raw_lines:
+        m = DISABLE_FILE_RE.search(raw)
+        if m:
+            file_disabled.update(x.strip() for x in m.group(1).split(",") if x.strip())
+
+    def line_disabled(idx):
+        rules = set()
+        for j in (idx, idx - 1):
+            if 0 <= j < len(raw_lines):
+                m = DISABLE_RE.search(raw_lines[j])
+                if m:
+                    rules.update(x.strip() for x in m.group(1).split(",") if x.strip())
+        return rules
+
+    def add(rule, idx, col, value=None):
+        if rule in file_disabled or rule in line_disabled(idx):
+            return
+        spec = RULES[rule]
+        findings.append(dict(
+            path=path, line=idx + 1, column=col + 1, rule=rule, name=spec["name"],
+            severity=spec["severity"], message=spec["message"].format(value=value),
+            fix=spec["fix"], source=spec["source"],
+        ))
+
+    file_has_reserved = any(P_RESERVED.search(l) for l in code)
+
+    # brace-depth stack of (label, depth_at_open)
+    stack = []
+    depth = 0
+
+    def inside(label_set):
+        for label, _ in stack:
+            if label in label_set:
+                return label
+        return None
+
+    for idx, line in enumerate(code):
+        kline = keep[idx]
+
+        # DUO001
+        for m in P_MAIN_SCREEN.finditer(line):
+            add("DUO001", idx, m.start())
+
+        # DUO002
+        for m in P_FRAME_WIDTH.finditer(line):
+            v = _num(m.group(2))
+            if v is not None and v >= min_width:
+                add("DUO002", idx, m.start(), m.group(2))
+        for pat in (P_WIDTH_ANCHOR, P_CGRECT_WIDTH):
+            for m in pat.finditer(line):
+                v = _num(m.group(1))
+                if v is not None and v >= min_width:
+                    add("DUO002", idx, m.start(), m.group(1))
+
+        # DUO003 (skip declarations of supportedInterfaceOrientations: locking orientation is allowed)
+        if not P_SUPPORTED_ORIENT_DECL.search(line):
+            m = P_ORIENTATION.search(line)
+            if m:
+                add("DUO003", idx, m.start())
+
+        # DUO004
+        m = P_IDIOM.search(line)
+        if m:
+            add("DUO004", idx, m.start())
+
+        # DUO005
+        for m in P_CUSTOM_BAR.finditer(line):
+            add("DUO005", idx, m.start(), m.group(1))
+
+        # DUO006: ignoresSafeArea on an expression that contains interactive controls.
+        m = P_IGNORE_SAFE.search(line)
+        if m:
+            prefix = line[:m.start()]
+            if prefix.strip():
+                # modifier on the same line: the owner is what precedes it on this line,
+                # plus any lines of a multi-line view that this line closes.
+                window = [prefix]
+                bal = prefix.count("{") - prefix.count("}")
+                j = idx - 1
+                while bal < 0 and j >= 0 and j >= idx - 60:
+                    window.append(code[j]); bal += code[j].count("{") - code[j].count("}"); j -= 1
+            else:
+                # chained modifier on its own line: walk back to where the view expression starts
+                window = []
+                bal = 0
+                j = idx - 1
+                while j >= 0 and j >= idx - 60:
+                    l = code[j]
+                    window.append(l)
+                    bal += l.count("{") - l.count("}")
+                    st = l.strip()
+                    if bal >= 0 and st and not st.startswith(".") and not st.startswith("}"):
+                        break
+                    j -= 1
+            if P_INTERACTIVE_SWIFTUI.search("\n".join(window)):
+                add("DUO006", idx, m.start())
+
+        # DUO007
+        m = P_SYMMETRIC.search(line)
+        if m:
+            add("DUO007", idx, m.start())
+
+        # DUO008
+        for pat in (P_GRID_REPEAT, P_GRID_COUNT_LAYOUT):
+            for m in pat.finditer(line):
+                cnt = int(m.group(1))
+                if cnt > 1 and cnt % 2 == 1:
+                    add("DUO008", idx, m.start(), cnt)
+        m = P_COLUMNS_ARRAY.search(line)
+        if m and "]" in line[m.end():]:
+            inner = line[m.end(): line.index("]", m.end())]
+            cnt = len(P_GRID_ITEM.findall(inner))
+            if cnt > 1 and cnt % 2 == 1:
+                add("DUO008", idx, m.start(), cnt)
+
+        # DUO009
+        if not file_has_reserved:
+            m = P_POSITION.search(line)
+            if m:
+                context = "\n".join(code[max(0, idx - 8): idx + 1])
+                if P_INTERACTIVE_SWIFTUI.search(context):
+                    add("DUO009", idx, m.start(), ".position(x:y:)")
+            m = P_FRAME_ASSIGN.search(line)
+            if m and P_INTERACTIVE_NAME.search(m.group(1)):
+                add("DUO009", idx, m.start(), m.group(1) + ".frame = CGRect(...)")
+            m = P_CENTER_ASSIGN.search(line)
+            if m:
+                lhs = line[:m.start()].strip().split()[-1] if line[:m.start()].strip() else ""
+                if P_INTERACTIVE_NAME.search(lhs):
+                    add("DUO009", idx, m.start(), lhs + ".center")
+
+        # DUO010
+        m = P_ELLIPSIS_MENU.search(kline)
+        if m:
+            ctx = "\n".join(keep[max(0, idx - 3): idx + 1])
+            if re.search(r"\bMenu\b|UIMenu|menu\s*:|showsMenuAsPrimaryAction", ctx):
+                add("DUO010", idx, m.start())
+
+        # DUO011 inside .toolbar { }
+        if inside({"toolbar"}):
+            m = P_TEXT_BUTTON.search(kline)
+            if m:
+                add("DUO011", idx, m.start())
+
+        # DUO012
+        m = P_FIXED_SPACE.search(line)
+        if m:
+            add("DUO012", idx, m.start())
+
+        # DUO013
+        m = P_ARRANGEMENT.search(line)
+        if m:
+            where = inside({"ScrollView", "List", "NavigationSplitView", "LazyVStack", "LazyHStack", "Form"})
+            if where:
+                add("DUO013", idx, m.start(), where)
+
+        # update brace stack, scanning characters so labels attach to their own "{"
+        pos = 0
+        opens = []
+        for mt in P_TOOLBAR_OPEN.finditer(line):
+            opens.append((mt.end() - 1, "toolbar"))
+        for mt in P_CONTAINER_OPEN.finditer(line):
+            opens.append((mt.end() - 1, mt.group(1)))
+        open_labels = dict(opens)
+        for ci, ch in enumerate(line):
+            if ch == "{":
+                depth += 1
+                if ci in open_labels:
+                    stack.append((open_labels[ci], depth))
+            elif ch == "}":
+                while stack and stack[-1][1] >= depth:
+                    stack.pop()
+                depth = max(0, depth - 1)
+
+    return findings
+
+
+def iter_swift_files(paths):
+    skip_dirs = {".git", ".build", "build", "DerivedData", "Pods", "Carthage", "node_modules", ".swiftpm"}
+    for p in paths:
+        if os.path.isfile(p):
+            if p.endswith(".swift"):
+                yield p
+            continue
+        for root, dirs, files in os.walk(p):
+            dirs[:] = sorted(d for d in dirs if d not in skip_dirs)
+            for f in sorted(files):
+                if f.endswith(".swift"):
+                    yield os.path.join(root, f)
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="duo-lint", description="Flag Swift code likely to break on iPhone Duo.")
+    ap.add_argument("paths", nargs="*", default=["."], help="Files or directories (default: .)")
+    ap.add_argument("--format", choices=["text", "json"], default="text")
+    ap.add_argument("--min-width", type=float, default=200,
+                    help="Smallest literal width (pt) reported by DUO002 (default 200).")
+    ap.add_argument("--disable", default="", help="Comma-separated rule ids to skip.")
+    ap.add_argument("--strict", action="store_true", help="Exit non-zero on info findings too.")
+    ap.add_argument("--exit-zero", action="store_true", help="Always exit 0.")
+    ap.add_argument("--list-rules", action="store_true", help="Print the rules and exit.")
+    args = ap.parse_args(argv)
+
+    if args.list_rules:
+        for rid, r in RULES.items():
+            print(f"{rid} {r['name']} [{r['severity']}]\n    {r['message'].format(value='N')}\n"
+                  f"    fix: {r['fix']}\n    source: {r['source']}")
+        return 0
+
+    disabled = frozenset(x.strip() for x in args.disable.split(",") if x.strip())
+    all_findings = []
+    nfiles = 0
+    for f in iter_swift_files(args.paths):
+        nfiles += 1
+        try:
+            with open(f, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError as e:
+            print(f"duo-lint: cannot read {f}: {e}", file=sys.stderr)
+            continue
+        all_findings.extend(scan_text(text, f, args.min_width, disabled))
+
+    if args.format == "json":
+        print(json.dumps({"files": nfiles, "findings": all_findings}, indent=2))
+    else:
+        for x in all_findings:
+            print(f"{x['path']}:{x['line']}:{x['column']}: {x['severity']}: {x['rule']} {x['name']}: {x['message']}")
+            print(f"    fix: {x['fix']}")
+        counts = {}
+        for x in all_findings:
+            counts[x["severity"]] = counts.get(x["severity"], 0) + 1
+        summary = ", ".join(f"{counts.get(s, 0)} {s}" for s in ("error", "warning", "info"))
+        print(f"duo-lint: {nfiles} Swift file(s) scanned, {len(all_findings)} finding(s) ({summary}).",
+              file=sys.stderr)
+
+    if args.exit_zero:
+        return 0
+    threshold = 0 if args.strict else 1
+    return 1 if any(SEVERITY_ORDER[x["severity"]] >= threshold for x in all_findings) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

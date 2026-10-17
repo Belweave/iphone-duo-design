@@ -1,0 +1,404 @@
+<!doctype html>
+<!--
+  iPhone Duo Preview: a design-review helper from the iphone-duo-design skill.
+  Independent project. Not made or endorsed by Apple. "iPhone" and "iPhone Duo" are Apple trademarks.
+  Frames are plain schematic outlines: no device renders, no Apple artwork, no logos.
+
+  SOURCES (every published value used in this file, and where it comes from)
+  1. App Store Connect Help, "Screenshot specifications"
+     https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications
+     (linked as "Screenshot specifications" from the HIG page in source 2)
+     - Outer display screenshot size: 1398 x 2034 px (portrait), 2034 x 1398 px (landscape)
+     - Inner display screenshot size: 2007 x 2853 px (portrait), 2853 x 2007 px (landscape)
+     -> used for each frame's aspect ratio, the relative scale between frames, and the size-mismatch check.
+  2. Human Interface Guidelines, "Designing for iPhone Duo"
+     https://developer.apple.com/tutorials/data/design/human-interface-guidelines/designing-for-iphone-duo.md
+     - Compact width layout = outer display; regular width layout = inner display
+     - Toolbars, tab bars and navigation controls move to the side; exception: inner display in portrait keeps horizontal bars
+     - Outer front camera is in the corner, always visible, vertically aligned with the side controls (always-present reserved region)
+     - Inner front camera is a reserved region only while the camera is active
+     - Folding region: when partially open it divides the inner display, excluding the region at the center
+     - Split View multitasking: each app places controls along its outer edge
+     - Arrangement views: split (horizontal when wider than tall, vertical when taller) and overlay
+     - Prefer an even number of grid columns
+  3. Apple Developer Documentation, "Preparing your app for iPhone Duo"
+     https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo.md
+     - Overlay arrangement: primary on top of secondary when closed or fully open; when partially open,
+       primary in the trailing or bottom part relative to the fold, secondary in the leading or top part
+     - Split arrangement adjusts placement to reserved regions such as the folding region; axes can be limited
+     - Fold reserved region is active when partially open, inactive when fully open
+  4. Tech Talk, "Design for iPhone Duo"
+     https://developer.apple.com/videos/play/tech-talks/111466/
+     - Two size classes: compact width (outer), regular width (inner); layout margins and horizontal safe area insets
+     - When closed, controls move to the right side of the display
+     - Partially folded like a book: content moves away from the center; in portrait, interactive elements move to the bottom half
+     - Split View is a 50/50 split; controls sit along each app's outer edge
+     - Scrollable content does not need to avoid the fold region
+  5. Tech Talk, "Strike a pose with adaptive layouts on iPhone Duo"
+     https://developer.apple.com/videos/play/tech-talks/111463/
+     - The fold's division region has a width of zero when the device is flat (inactive)
+     - Split arrangement shows only the primary view when it can't split along its primary axis
+
+  FOLD AXIS (UNVERIFIED AS DRAWN): Apple never states the fold's axis in words. This tool draws a vertical
+  fold line in landscape and a horizontal one in portrait on the inner display. That is an inference from
+  Apple's descriptions: book pose -> content and controls move to the left/right sides (Tech Talk 111466),
+  portrait folded / tabletop -> interactive elements move to the bottom half, glanceable content to the top
+  region (Tech Talks 111466, 111463), and the overlay arrangement uses "trailing or bottom" / "leading or top"
+  parts relative to the fold (Preparing your app). Treat the drawn axis as unverified.
+
+  NOT PUBLISHED on the pages above (left as user inputs, empty by default, labeled "set from Apple docs"):
+  point dimensions and scale factor, fold region width when partially folded, safe area inset values,
+  layout margin values, side control region width, camera region size, corner radius.
+  Apple points to its Apple Design Resources UI kits for margins and safe areas
+  (https://developer.apple.com/design/resources/); read values there and enter them here.
+  The frame corner radius below is a cosmetic outline only, not a device measurement.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone Duo Preview</title>
+<style>
+:root{
+  --bg:#0e1013; --panel:#16191e; --panel2:#1d2127; --line:#2c323a; --text:#eceef1; --muted:#a9b0ba;
+  --accent:#8cc8ff; --accent-ink:#0b1420; --frame:#d9dde3;
+  --safe:#5eead4; --margin:#f0abfc; --fold:#4ade80; --ctrl:#93c5fd; --cam:#fcd34d; --warn:#fbbf24;
+  --chip-bg:#0e1013e6; --screen:#0b0d10;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f5f6f8; --panel:#ffffff; --panel2:#eef0f3; --line:#d4d8de; --text:#14171c; --muted:#4b5361;
+  --accent:#0b5cad; --accent-ink:#ffffff; --frame:#2a2f37;
+  --safe:#0f766e; --margin:#a21caf; --fold:#15803d; --ctrl:#1d4ed8; --cam:#92400e; --warn:#92400e;
+  --chip-bg:#ffffffeb; --screen:#e7eaee;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;grid-template-rows:auto 1fr auto;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.01em}
+header .sub{color:var(--muted);font-size:12.5px}
+header .sp{flex:1}
+button,select,input{font:inherit;color:var(--text)}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{display:grid;grid-template-columns:300px 1fr;min-height:0}
+aside{border-right:1px solid var(--line);padding:14px 16px;overflow:auto;background:var(--panel)}
+aside h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px;font-weight:650}
+aside h2:first-child{margin-top:0}
+.drop{display:block;border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--muted);cursor:pointer;background:var(--panel2)}
+.drop.over,.drop:hover{border-color:var(--accent);color:var(--text)}
+.drop strong{color:var(--text);display:block;margin-bottom:2px}
+.row{display:flex;gap:6px;margin-top:8px}
+.row input[type=url]{flex:1;min-width:0}
+input[type=url],input[type=number],select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;background:var(--panel2);border:0;padding:6px 4px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.tog{display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer}
+.tog input{accent-color:var(--accent);width:16px;height:16px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:auto}
+.field{display:grid;grid-template-columns:1fr 92px;align-items:center;gap:8px;margin:5px 0}
+.field label{color:var(--text);font-size:13px}
+.field input{width:92px}
+.field input::placeholder{color:var(--muted);font-size:11px}
+.note{color:var(--muted);font-size:12px;margin:6px 0 0}
+.stage{position:relative;overflow:auto;padding:22px 24px 28px}
+.frames{display:flex;gap:32px;align-items:flex-end;justify-content:center;flex-wrap:wrap}
+.unit{display:flex;flex-direction:column;gap:8px}
+.cap{display:flex;flex-direction:column;gap:1px}
+.cap b{font-size:13.5px}
+.cap span{color:var(--muted);font-size:12px}
+.frame{position:relative;border:2px solid var(--frame);border-radius:14px;overflow:hidden;background:var(--screen)}
+.frame img,.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.frame iframe{transform-origin:0 0;background:#fff}
+.ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:12px;text-align:center;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:24px 24px;opacity:.9}
+.ov{position:absolute;pointer-events:none}
+.chip{position:absolute;font-size:10.5px;line-height:1.25;padding:2px 6px;border-radius:5px;background:var(--chip-bg);border:1px solid currentColor;white-space:nowrap;pointer-events:none;font-weight:600}
+.box{position:absolute;display:grid;place-items:center;text-align:center;font-size:12px;font-weight:600;border-radius:8px;border:1.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:var(--text)}
+.box.sec{border-style:dashed;background:color-mix(in srgb,var(--muted) 12%,var(--panel))}
+.warn{color:var(--warn);font-size:12px}
+footer{border-top:1px solid var(--line);padding:8px 20px;color:var(--muted);font-size:12px;display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:860px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>iPhone Duo Preview</h1>
+  <span class="sub">Outer display (compact width) and inner display (regular width), side by side</span>
+  <span class="sp"></span>
+  <button class="btn" id="themeBtn" type="button" aria-label="Toggle light or dark theme">Theme</button>
+</header>
+<main>
+<aside aria-label="Controls">
+  <h2>Content</h2>
+  <label class="drop" id="drop" tabindex="0">
+    <strong>Drop, paste or pick a screenshot</strong>
+    PNG or JPEG. Paste with Ctrl/Cmd+V.
+    <input id="file" type="file" accept="image/*" class="sr">
+  </label>
+  <div class="row">
+    <input id="url" type="url" placeholder="https://… (load in an iframe)" aria-label="Page URL to preview in an iframe">
+    <button class="btn" id="urlBtn" type="button">Load</button>
+  </div>
+  <p class="note">Some sites block framing. The iframe renders at the frame's on-screen size, so use it for rough checks only.</p>
+  <label class="tog"><input type="checkbox" id="contain"> Fit image inside frame (contain)</label>
+  <p class="warn" id="sizeWarn" role="status"></p>
+
+  <h2>Preview</h2>
+  <div class="seg" role="group" aria-label="Preview mode" id="modeSeg">
+    <button type="button" data-v="content" aria-pressed="true">Content</button>
+    <button type="button" data-v="split">Split View</button>
+    <button type="button" data-v="arrS">Split arr.</button>
+    <button type="button" data-v="arrO">Overlay</button>
+  </div>
+  <div id="arrOpts" hidden>
+    <div class="field"><label for="axes">Split axes</label>
+      <select id="axes"><option value="both">Both</option><option value="h">Horizontal only</option><option value="v">Vertical only</option></select></div>
+    <label class="tog"><input type="checkbox" id="collapse"> Collapse secondary (overlay)</label>
+  </div>
+
+  <h2>Pose</h2>
+  <div class="seg" role="group" aria-label="Orientation" id="orientSeg">
+    <button type="button" data-v="portrait" aria-pressed="true">Portrait</button>
+    <button type="button" data-v="landscape">Landscape</button>
+  </div>
+  <label class="tog"><input type="checkbox" id="fold"> Inner display half-folded</label>
+  <p class="note">Fold axis is <strong>unverified</strong>: Apple doesn't state it in words. Drawn vertical in landscape and horizontal in portrait, inferred from Apple's left/right (book) and top/bottom (portrait, tabletop) descriptions.</p>
+  <div class="field"><label for="ctrlSide">Side-control edge</label>
+    <select id="ctrlSide"><option value="right">Right</option><option value="left">Left</option></select></div>
+  <p class="note">The Tech Talk shows controls on the right side when closed. They stay aligned with the hardware in right-to-left languages.</p>
+
+  <h2>Guides</h2>
+  <label class="tog"><input type="checkbox" id="gCtrl" checked> Side-control region <span class="sw" style="background:var(--ctrl)"></span></label>
+  <label class="tog"><input type="checkbox" id="gSafe" checked> Safe area <span class="sw" style="background:var(--safe)"></span></label>
+  <label class="tog"><input type="checkbox" id="gMargin" checked> Layout margins <span class="sw" style="background:var(--margin)"></span></label>
+  <label class="tog"><input type="checkbox" id="gCam" checked> Camera (approx. corner) <span class="sw" style="background:var(--cam)"></span></label>
+
+  <h2>Values (screenshot px)</h2>
+  <p class="note">Apple's pages don't publish these numbers. Enter them from Apple Design Resources or your own measurements. They're saved locally in this browser.</p>
+  <div class="field"><label for="vCtrl">Side-control width</label><input id="vCtrl" type="number" min="0" placeholder="set from Apple docs"></div>
+  <div class="field"><label for="vTop">Safe area top</label><input id="vTop" type="number" min="0" placeholder="set from Apple docs"></div>
+  <div class="field"><label for="vBottom">Safe area bottom</label><input id="vBottom" type="number" min="0" placeholder="set from Apple docs"></div>
+  <div class="field"><label for="vLead">Safe area, side opposite the controls</label><input id="vLead" type="number" min="0" placeholder="set from Apple docs"></div>
+  <div class="field"><label for="vMargin">Layout margin</label><input id="vMargin" type="number" min="0" placeholder="set from Apple docs"></div>
+  <div class="field"><label for="vFold">Fold region width</label><input id="vFold" type="number" min="0" placeholder="set from Apple docs"></div>
+  <p class="note">Fold width is 0 when the device is flat (Tech Talk 111463). Apple doesn't publish the folded width.</p>
+  <div class="row"><button class="btn" id="copyBtn" type="button">Copy values JSON</button><button class="btn" id="resetBtn" type="button">Reset</button></div>
+</aside>
+<section class="stage" aria-label="Preview">
+  <div class="frames">
+    <div class="unit"><div class="cap"><b>Outer display · compact width</b><span id="capOuter"></span></div><div class="frame" id="outer"></div></div>
+    <div class="unit"><div class="cap"><b>Inner display · regular width</b><span id="capInner"></span></div><div class="frame" id="inner"></div></div>
+  </div>
+</section>
+</main>
+<footer>
+  <span>Independent tool, not made or endorsed by Apple. Frames are schematic outlines drawn to Apple's published screenshot aspect ratios.</span>
+  <span>Sources: <a href="https://developer.apple.com/tutorials/data/design/human-interface-guidelines/designing-for-iphone-duo.md">HIG</a> ·
+  <a href="https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo.md">Preparing your app</a> ·
+  <a href="https://developer.apple.com/videos/play/tech-talks/111466/">Design for iPhone Duo</a> ·
+  <a href="https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications">Screenshot specs</a></span>
+</footer>
+<script>
+(() => {
+"use strict";
+// Published screenshot sizes (px), App Store Connect "Screenshot specifications". Portrait w x h.
+const SIZES = { outer:{w:1398,h:2034}, inner:{w:2007,h:2853} };
+const $ = id => document.getElementById(id);
+const KEY = "duo-preview-v1";
+const VALS = ["vCtrl","vTop","vBottom","vLead","vMargin","vFold"];
+const S = { mode:"content", orient:"portrait", src:null, kind:null, imgW:0, imgH:0 };
+
+// ---- persistence + hash params (theme, orient, fold, mode) ----
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(KEY)||"{}"); VALS.forEach(k=>{ if(d[k]!=null && d[k]!=="") $(k).value=d[k]; }); if(d.theme) setTheme(d.theme); }catch(e){}
+  const h = new URLSearchParams(location.hash.slice(1));
+  if(h.get("theme")) setTheme(h.get("theme"));
+  if(h.get("orient")) S.orient = h.get("orient")==="landscape"?"landscape":"portrait";
+  if(h.get("fold")==="1") $("fold").checked = true;
+  if(h.get("mode")) S.mode = h.get("mode");
+}
+function save(){ const d={theme:document.documentElement.dataset.theme}; VALS.forEach(k=>d[k]=$(k).value); try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){} }
+function setTheme(t){ document.documentElement.dataset.theme = t==="light"?"light":"dark"; }
+if(!document.documentElement.dataset.theme) setTheme(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
+const num = id => { const v = parseFloat($(id).value); return isFinite(v)&&v>=0 ? v : null; };
+
+// ---- content input ----
+function setImage(file){
+  if(!file || !file.type.startsWith("image/")) return;
+  const r = new FileReader();
+  r.onload = () => { const im = new Image(); im.onload = () => { S.src=r.result; S.kind="img"; S.imgW=im.naturalWidth; S.imgH=im.naturalHeight; render(); }; im.src = r.result; };
+  r.readAsDataURL(file);
+}
+const drop = $("drop");
+drop.addEventListener("keydown", e => { if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("file").click(); }});
+$("file").addEventListener("change", e => setImage(e.target.files[0]));
+["dragenter","dragover"].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over");}));
+document.addEventListener("drop", e => setImage(e.dataTransfer.files[0]));
+document.addEventListener("paste", e => { const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/")); if(it) setImage(it.getAsFile()); });
+$("urlBtn").addEventListener("click", () => { const u=$("url").value.trim(); if(/^https?:\/\//i.test(u)){ S.src=u; S.kind="url"; render(); } });
+
+// ---- controls ----
+function seg(id,key){ $(id).addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; S[key]=b.dataset.v; render(); }); }
+seg("modeSeg","mode"); seg("orientSeg","orient");
+["contain","fold","ctrlSide","gCtrl","gSafe","gMargin","gCam","axes","collapse"].forEach(id=>$(id).addEventListener("change",render));
+VALS.forEach(id=>$(id).addEventListener("input",()=>{save();render();}));
+$("themeBtn").addEventListener("click",()=>{ setTheme(document.documentElement.dataset.theme==="light"?"dark":"light"); save(); });
+$("resetBtn").addEventListener("click",()=>{ VALS.forEach(k=>$(k).value=""); save(); render(); });
+$("copyBtn").addEventListener("click",()=>{ const d={}; VALS.forEach(k=>d[k]=num(k)); navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(d,null,2)); });
+addEventListener("resize",render);
+
+// ---- drawing helpers (all geometry in screenshot px, scaled by k) ----
+function el(parent,cls,css,text){ const d=document.createElement("div"); if(cls) d.className=cls; Object.assign(d.style,css||{}); if(text!=null) d.textContent=text; parent.appendChild(d); return d; }
+function rect(f,k,x,y,w,h,color,opts={}){
+  return el(f,"ov",{left:x*k+"px",top:y*k+"px",width:Math.max(0,w*k)+"px",height:Math.max(0,h*k)+"px",
+    border:`${opts.bw||1.5}px ${opts.dash?"dashed":"solid"} ${color}`, background:opts.fill?`color-mix(in srgb, ${color} ${opts.fill}%, transparent)`:"transparent", borderRadius:(opts.r||0)+"px"});
+}
+function chip(f,k,x,y,text,color,anchor){
+  const c=el(f,"chip",{color,left:x*k+"px",top:y*k+"px"},text);
+  if(anchor==="right") c.style.transform="translateX(-100%)";
+  if(anchor==="center") c.style.transform="translate(-50%,-50%)";
+  if(anchor==="bottom") c.style.transform="translateY(-100%)";
+  return c;
+}
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function drawFrame(f, which, k, W, H){
+  f.innerHTML="";
+  f.style.width=W*k+"px"; f.style.height=H*k+"px";
+  const land = S.orient==="landscape";
+  const folded = which==="inner" && $("fold").checked;
+  const sideCtrls = !(which==="inner" && !land); // HIG: inner portrait keeps horizontal bars
+  const right = $("ctrlSide").value==="right";
+  const C = {ctrl:css("--ctrl"),safe:css("--safe"),margin:css("--margin"),fold:css("--fold"),cam:css("--cam"),muted:css("--muted")};
+  const vCtrl=num("vCtrl"), vTop=num("vTop"), vBot=num("vBottom"), vLead=num("vLead"), vMar=num("vMargin"), vFold=num("vFold");
+
+  // fold geometry (UNVERIFIED, inferred; see header): landscape = vertical line; portrait = horizontal line
+  const foldW = folded ? (vFold||0) : 0;
+  const foldVert = land;
+
+  // content layer
+  if(S.mode==="content"){
+    if(S.kind==="img"){ const im=document.createElement("img"); im.src=S.src; im.alt="Screenshot preview"; im.style.objectFit=$("contain").checked?"contain":"cover"; f.appendChild(im); }
+    else if(S.kind==="url"){ const fr=document.createElement("iframe"); fr.src=S.src; fr.title="URL preview"; fr.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms"); f.appendChild(fr); }
+    else el(f,"ph",{},"Drop a screenshot\nor load a URL").style.whiteSpace="pre";
+  } else if(S.mode==="split"){
+    if(which==="outer"){ el(f,"ph",{},"Split View shares the\ninner display").style.whiteSpace="pre"; }
+    else if(!land){ el(f,"ph",{},"Apple's pages describe the\n50/50 split; portrait layout\nnot shown here").style.whiteSpace="pre"; }
+    else {
+      const half=W/2;
+      const a=el(f,"box",{left:"0px",top:"0px",width:half*k-1+"px",height:H*k+"px",borderRadius:"0"},"App A\ncontrols on left edge"); a.style.whiteSpace="pre";
+      const b=el(f,"box",{left:half*k+1+"px",top:"0px",width:half*k-1+"px",height:H*k+"px",borderRadius:"0"},"App B\ncontrols on right edge"); b.style.whiteSpace="pre"; b.classList.add("sec");
+      if(S.kind==="img"){ const im=document.createElement("img"); im.src=S.src; im.alt="Screenshot in App A"; Object.assign(im.style,{width:half*k-1+"px",right:"auto",objectFit:"cover"}); f.appendChild(im); }
+      rect(f,k,0,0,10/k,H,C.ctrl,{fill:40,bw:0}); rect(f,k,W-10/k,0,10/k,H,C.ctrl,{fill:40,bw:0});
+      chip(f,k,W/4,H-8/k,"50 / 50",C.muted,"center");
+    }
+  } else {
+    // arrangement schematics
+    const regions = (folded) ? (foldVert ? [[0,0,W/2-foldW/2,H],[W/2+foldW/2,0,W/2-foldW/2,H]] : [[0,0,W,H/2-foldW/2],[0,H/2+foldW/2,W,H/2-foldW/2]]) : null;
+    const pad=24;
+    if(S.mode==="arrS"){
+      const wide=W>H, ax=$("axes").value;
+      const canH = ax!=="v", canV = ax!=="h";
+      const primaryAxisOk = wide ? canH : canV;
+      if(!primaryAxisOk){ el(f,"box",{left:pad*k+"px",top:pad*k+"px",width:(W-2*pad)*k+"px",height:(H-2*pad)*k+"px"},"Primary only\n(can't split on primary axis)").style.whiteSpace="pre"; }
+      else {
+        const rs = regions || (wide ? [[0,0,W/2,H],[W/2,0,W/2,H]] : [[0,0,W,H/2],[0,H/2,W,H/2]]);
+        rs.forEach((r,i)=>{ const b=el(f,"box"+(i?" sec":""),{left:(r[0]+pad)*k+"px",top:(r[1]+pad)*k+"px",width:(r[2]-2*pad)*k+"px",height:(r[3]-2*pad)*k+"px"},i?"Secondary":"Primary"); });
+      }
+    } else {
+      const collapse=$("collapse").checked;
+      if(regions){ // partially open: secondary leading/top, primary trailing/bottom
+        const [lead,trail]=regions;
+        if(!collapse) el(f,"box sec",{left:(lead[0]+pad)*k+"px",top:(lead[1]+pad)*k+"px",width:(lead[2]-2*pad)*k+"px",height:(lead[3]-2*pad)*k+"px"},"Secondary");
+        el(f,"box",{left:(trail[0]+pad)*k+"px",top:(trail[1]+pad)*k+"px",width:(trail[2]-2*pad)*k+"px",height:(trail[3]-2*pad)*k+"px"},"Primary");
+      } else {
+        if(!collapse) el(f,"box sec",{left:pad*k+"px",top:pad*k+"px",width:(W-2*pad)*k+"px",height:(H-2*pad)*k+"px"},"").appendChild(document.createTextNode("Secondary (below)"));
+        const pw=(W-2*pad)*0.62, ph=(H-2*pad)*0.34;
+        el(f,"box",{left:(W-pw)/2*k+"px",top:(H-ph-pad*3)*k+"px",width:pw*k+"px",height:ph*k+"px",boxShadow:"0 6px 18px #0006"},"Primary (on top)");
+      }
+    }
+  }
+
+  // ---- guides ----
+  // side-control region
+  if($("gCtrl").checked){
+    if(sideCtrls){
+      const x = right ? W-(vCtrl||0) : 0;
+      if(vCtrl){ rect(f,k,x,0,vCtrl,H,C.ctrl,{fill:18,dash:true}); }
+      else { rect(f,k,right?W-2/k:0,0,2/k,H,C.ctrl,{fill:100,bw:0}); }
+      const cc=chip(f,k,right?W-12/k:12/k,H/2,vCtrl?`Controls · ${vCtrl}px`:"Side controls",C.ctrl); cc.style.writingMode="vertical-rl"; cc.style.transform=right?"translate(-100%,-50%)":"translateY(-50%)";
+    } else {
+      chip(f,k,W/2,14/k,"Inner portrait: horizontal bars (HIG)",C.ctrl).style.transform="translateX(-50%)";
+    }
+  }
+  // safe area: control side uses side-control width; opposite side uses vLead
+  const ctrlIn = sideCtrls ? vCtrl : null;
+  const sL = right ? vLead : ctrlIn, sR = right ? ctrlIn : vLead;
+  const anySafe=[vTop,vBot,sL,sR].some(v=>v!=null);
+  if($("gSafe").checked && anySafe){
+    const l=sL||0,r=sR||0,t=vTop||0,b=vBot||0;
+    rect(f,k,l,t,W-l-r,H-t-b,C.safe,{bw:1.5});
+    chip(f,k,l+6/k,t+6/k,"Safe area",C.safe);
+    if($("gMargin").checked && vMar!=null){ rect(f,k,l+vMar,t,W-l-r-2*vMar,H-t-b,C.margin,{dash:true}); chip(f,k,l+vMar+6/k,H-b-6/k,"Layout margins",C.margin,"bottom"); }
+  } else if($("gSafe").checked || $("gMargin").checked){
+    chip(f,k,W/2,H-12/k,(sideCtrls&&!vCtrl?"Control width, safe area, margins":"Safe area, margins")+": set from Apple docs",C.safe).style.transform="translate(-50%,-100%)";
+  }
+  // outer camera: corner, aligned with side controls (HIG); size not published -> marker only
+  if($("gCam").checked && which==="outer"){
+    const d=26/k, cx = right ? W-d-10/k : 10/k;
+    rect(f,k,cx,10/k,d,d,C.cam,{dash:true,r:99});
+    chip(f,k,right?cx-6/k:cx+d+6/k,10/k,"Camera · approx. corner",C.cam,right?"right":null);
+  }
+  // fold reserved region (inner, partially open)
+  if(folded){
+    if(foldVert){
+      if(foldW){ rect(f,k,W/2-foldW/2,0,foldW,H,C.fold,{fill:22,dash:true}); }
+      rect(f,k,W/2-1/k,0,2/k,H,C.fold,{fill:100,bw:0});
+      chip(f,k,W/2,H*0.22,foldW?`Fold region · ${foldW}px · axis unverified`:"Fold · axis unverified · width: set from Apple docs",C.fold,"center");
+      chip(f,k,W/4,H*0.08,"Region 1 (leading)",C.fold,"center"); chip(f,k,W*3/4,H*0.08,"Region 2 (trailing)",C.fold,"center");
+    } else {
+      if(foldW){ rect(f,k,0,H/2-foldW/2,W,foldW,C.fold,{fill:22,dash:true}); }
+      rect(f,k,0,H/2-1/k,W,2/k,C.fold,{fill:100,bw:0});
+      chip(f,k,W/2,H/2-14/k,foldW?`Fold region · ${foldW}px · axis unverified`:"Fold · axis unverified · width: set from Apple docs",C.fold,"center");
+      chip(f,k,W/2,H*0.75,"Bottom region: interactive elements (Tech Talk)",C.fold,"center");
+    }
+  }
+}
+
+function render(){
+  document.querySelectorAll("#modeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.mode));
+  document.querySelectorAll("#orientSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===S.orient));
+  $("arrOpts").hidden = !(S.mode==="arrS"||S.mode==="arrO");
+  const land=S.orient==="landscape";
+  const dims = w => land ? {W:SIZES[w].h,H:SIZES[w].w} : {W:SIZES[w].w,H:SIZES[w].h};
+  const o=dims("outer"), i=dims("inner");
+  const stage=document.querySelector(".stage");
+  const availW = stage.clientWidth-48-32-8, availH = stage.clientHeight-48-60;
+  const k = Math.max(0.05, Math.min(availW/(o.W+i.W), availH/Math.max(o.H,i.H)));  // one shared scale keeps true relative size
+  drawFrame($("outer"),"outer",k,o.W,o.H);
+  drawFrame($("inner"),"inner",k,i.W,i.H);
+  $("capOuter").textContent = `${o.W} × ${o.H} px screenshot (${S.orient}) · side controls`;
+  $("capInner").textContent = `${i.W} × ${i.H} px screenshot (${S.orient}) · ${land?"side controls":"horizontal bars"}${$("fold").checked?" · half-folded":""}`;
+  if(S.mode==="arrS"||S.mode==="arrO"){ $("capInner").textContent += " · box sizes illustrative"; $("capOuter").textContent += " · box sizes illustrative"; }
+  // size check against published screenshot sizes
+  let w="";
+  if(S.kind==="img"){
+    const ok=[o,i].some(d=>d.W===S.imgW&&d.H===S.imgH);
+    if(!ok) w=`Image is ${S.imgW} × ${S.imgH} px. Apple's ${S.orient} screenshot sizes are ${o.W} × ${o.H} px (outer) and ${i.W} × ${i.H} px (inner), so it is cropped or letterboxed here.`;
+  }
+  $("sizeWarn").textContent=w;
+}
+load(); render();
+})();
+</script>
+</body>
+</html>
