@@ -1,0 +1,45 @@
+{
+  "skill": "iphone-duo-design",
+  "test_cases": [
+    {
+      "name": "adapt_existing_app",
+      "input": "Review this SwiftUI view and adapt it for iPhone Duo. It currently uses fixed frames and bottom toolbar.",
+      "assertions": [
+        "Identifies fixed widths as problem",
+        "Recommends size classes (compact vs regular)",
+        "Suggests system toolbar for automatic vertical placement",
+        "Mentions safe area insets and fold avoidance"
+      ]
+    },
+    {
+      "name": "split_view_recommendation",
+      "input": "My mail-style app needs to show list and detail on the big inner screen but single pane when closed. How should I structure it?",
+      "assertions": [
+        "Recommends NavigationSplitView or equivalent",
+        "Notes automatic collapse on compact / outer display",
+        "Emphasizes consistent hierarchy across poses",
+        "Mentions fold adaptation of columns"
+      ]
+    },
+    {
+      "name": "fold_handling",
+      "input": "Buttons keep landing in the center curve when the Duo is partially folded. What's the right way to fix this?",
+      "assertions": [
+        "Points to Reserved Region API or system components",
+        "Explains interactive elements should avoid fold while scrollable content need not",
+        "Warns against dramatic rearrangements",
+        "Suggests testing in Device Hub"
+      ]
+    },
+    {
+      "name": "outer_display_controls",
+      "input": "On the closed Duo the screen is shorter. Where should my tab bar and nav buttons go?",
+      "assertions": [
+        "Controls move to the side to maximize vertical space",
+        "Exception for inner portrait",
+        "System handles this with standard components",
+        "Content offsets via safe areas"
+      ]
+    }
+  ]
+}

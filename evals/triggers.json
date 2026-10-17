@@ -1,0 +1,33 @@
+{
+  "skill": "iphone-duo-design",
+  "test_cases": [
+    {
+      "input": "How do I design my app for the iPhone Duo foldable?",
+      "should_trigger": true
+    },
+    {
+      "input": "Adapt this layout for iPhone Duo outer and inner displays",
+      "should_trigger": true
+    },
+    {
+      "input": "Controls need to move to the side on the Duo and avoid the fold",
+      "should_trigger": true
+    },
+    {
+      "input": "What's the best size class strategy for iPhone Duo poses?",
+      "should_trigger": true
+    },
+    {
+      "input": "How do I make a regular iPhone app?",
+      "should_trigger": false
+    },
+    {
+      "input": "Design a website landing page",
+      "should_trigger": false
+    },
+    {
+      "input": "Android foldable phone UI tips",
+      "should_trigger": false
+    }
+  ]
+}
