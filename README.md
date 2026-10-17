@@ -1,5 +1,7 @@
 # iphone-duo-design
 
+![iphone duo design skill: teach your agent the folding iphone](docs/images/cover.png)
+
 An agent skill and toolkit for building iOS apps that work well on **iPhone Duo**, across the compact outer display and the large inner one. It covers:
 - size classes and resizable layouts
 - bars that move to the side
