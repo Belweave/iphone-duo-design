@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0 — 2026-10-25
+iPhone Duo on the App Store, and the iOS 27 / 27.1 APIs that shipped with it. Every new claim was checked against Apple's pages on this date. Where two Apple pages disagree, both sentences are quoted.
+
+### Added
+- `references/app-store.md`: the optimized-for-iPhone-Duo badge, screenshot sizes, featuring nominations that name every pose, and App Review Guidelines 2.3.14 and 2.5.19 (guidelines updated October 16, 2026).
+- SDK tiers in `SKILL.md`: iOS 26 or earlier (centered, empty space when open), iOS 27 (fills most of the inner display), iOS 27.1 or later (full display and vertical bars). From April 2027, new uploads need the iOS 27 SDK. Side bars still need the iOS 27.1 SDK.
+- How this skill sits next to Apple's App Resizability skill, including `xcrun agent skills export`.
+- Camera direction (virtual front camera, `AVCaptureDeviceDirectionCoordinator`), `UIHingeInteraction` and SwiftUI `onHingeChange(isEnabled:_:)`, `UISceneAccessory` / `CameraCaptureAccessory` for the outer display, and multiple windows (new windows on the inner display only).
+- Live Activities at limited width (`isDynamicIslandLimitedInWidth`, 28pt circle) and Liquid Glass notes for a build targeting iOS 27, including that `UIDesignRequiresCompatibility` is ignored.
+- Resizable iPhone Mirroring on macOS 27 in the test plan.
+- Lint rules DUO014–DUO018, with fixture and unit tests: hardcoded phone screen sizes, cropped hero images, a size read only at launch, treating regular width as iPad, and `UIDesignRequiresCompatibility` in Swift or a property list.
+- Evals and trigger cases for the App Store page, Apple's exported skill, the hinge, and Liquid Glass.
+
+### Flagged
+- April 2027 Duo screenshots. Screenshot specifications say they are required "for any app using the iOS 27.1 SDK or later." The October 5 news post, the App Store Connect release notes, and What's New say "any apps or games submitted." Both are quoted. This skill does not pick one.
+- "Xcode 27.1 or later" is this skill's floor. Apple's pages name Xcode 27.1 as the release to download and say "iOS 27.1 SDK or later" for the SDK. They don't write "or later" next to the Xcode version.
+- `onHingeChange` is real. v0.2 listed it as unverified because the guessed URL was wrong. The symbol is `onHingeChange(isEnabled:_:)`, iOS 27.1.
+
+### Changed
+- Requirement lines now say **Xcode 27.1 or later** and the iOS 27.1 SDK.
+- Hero templates choose fill or fit from the size class, matching the prepare page, so they stay clean under DUO015.
+
 ## 0.2.0 — 2026-10-17
 Expanded the skill into a full iPhone Duo toolkit for coding agents.
 

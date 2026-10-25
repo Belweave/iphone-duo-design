@@ -9,7 +9,7 @@ You are reviewing **<screen or flow name>** in **<repo path>** for iPhone Duo. U
 Inputs:
 - Code: <files or folders for this screen>
 - Screenshots (optional): <paths; outer 1398×2034 / inner 2007×2853 or landscape equivalents>
-- Platform: <SwiftUI | UIKit | mixed>; deployment target <iOS x>; built with Xcode 27.1 / iOS 27.1 SDK? <yes/no>
+- Platform: <SwiftUI | UIKit | mixed>; deployment target <iOS x>; built with Xcode 27.1 or later / iOS 27.1 SDK? <yes/no>
 
 Do this, in order:
 1. **Static scan.** Run `<path-to-skill>/scripts/duo-lint <code paths> --format json`. Treat each finding as a lead to confirm by reading the code, not as proof. Note false positives.

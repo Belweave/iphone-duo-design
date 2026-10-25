@@ -24,12 +24,16 @@ import SwiftUI
 
 struct ComposeScreen: View {
     @Environment(\.toolbarVerticalEdge) private var verticalEdge   // nil when no vertical bar is used
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 Image(systemName: "photo")              // replace with your hero image
-                    .resizable().scaledToFill()
+                    // Prepare page: choose fill or fit from the size class so a wider display doesn't crop the subject.
+                    // https://developer.apple.com/iphone-duo/prepare/
+                    .resizable()
+                    .aspectRatio(contentMode: horizontalSizeClass == .regular ? .fit : .fill)
                     .frame(maxWidth: .infinity, minHeight: 220)
                     .backgroundExtensionEffect()        // extends under a vertical bar
                 Text("Body").padding()

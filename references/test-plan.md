@@ -6,7 +6,7 @@ connections: [review-rubric, design-review-checklist]
 # iPhone Duo pose-by-pose test plan
 
 **Setup.**
-- Build with Xcode 27.1 and the iOS 27.1 SDK. Older SDKs don't extend under the status bar or lay bars out vertically (Tech Talk 111461).
+- Build with **Xcode 27.1 or later** and the **iOS 27.1 SDK**. That is the SDK that extends to the screen edge and lays bars out vertically (Tech Talk 111461, [prepare page](https://developer.apple.com/iphone-duo/prepare/)). An iOS 27 SDK build still avoids the status bar on the right edge. An iOS 26 SDK (or earlier) build sits centered, with empty space around it, when the device is open.
 - Run on the **iPhone Duo simulator in Device Hub**:
   - Use the **Closed**, **Partially Open** and **Open** buttons below the bezel.
   - Option-drag the slider to fold to any angle.
@@ -50,6 +50,8 @@ connections: [review-rubric, design-review-checklist]
 | C2 | **Split View, your app on the right** | Controls on the right. Nothing assumes left and right insets are equal (TT 111461) |
 | C3 | **Picture in Picture pinned to the top** | Your app resizes vertically to the remaining space (TT 111466) |
 | C4 | PiP pinned and **partially folded** | The video fills half the screen and your app adapts vertically in real time (TT 111466) |
+| C5 | **iPhone Mirroring on macOS 27**, window dragged to extreme widths and heights in both directions | The layout reflows across the whole range. Nothing assumes a phone is always compact, or that regular width means iPad ([prepare page](https://developer.apple.com/iphone-duo/prepare/), Step 3) |
+| C6 | **New window** while open, then while closed | A new window is created on the inner display. On the outer display the request fails cleanly, and a `UIWindowScene.ActivationAction` menu item is hidden (Tech Talk 111464). Mark N/A if the app has a single scene |
 
 ## D. Bars and controls
 
@@ -71,10 +73,15 @@ connections: [review-rubric, design-review-checklist]
 | E2 | Scrolling content | May cross the fold and doesn't need to move (TT 111466, TT 111463) |
 | E3 | Full-bleed or immersive screens | Backgrounds extend under bars and interactive content stays in the safe area. Nothing conflicts with the Dynamic Island or status bar (HIG, TT 111461) |
 | E4 | Games | Fill the screen in every pose. Prefer changing the aspect ratio over bars, and fill any bars with artwork. Text and control sizes stay steady (HIG) |
-| E5 | Camera apps | Handle the active camera flipping direction as the device opens, closes and rotates. See [Choosing a camera by the direction it faces](https://developer.apple.com/documentation/avkit/choosing-a-camera-by-the-direction-it-faces) (Preparing your app) |
+| E5 | Camera apps | The virtual front camera follows the open and closed device. If you use the physical cameras, `AVCaptureDeviceDirectionCoordinator` switches to a forward-facing camera as the device opens, closes, and rotates. See [Choosing a camera by the direction it faces](https://developer.apple.com/documentation/avkit/choosing-a-camera-by-the-direction-it-faces) |
 | E6 | Right-to-left languages | Vertical controls stay on the same hardware side. Custom fold avoidance still works because SwiftUI mirrors region frames by default (HIG, `ReservedRegion` doc) |
+| E7 | Live Activity, compact and minimal, on iPhone Duo and with the phone in landscape | When `isDynamicIslandLimitedInWidth` is true, the content fits in a 28pt circle: a short label or a graphic, not a truncated sentence ([Live Activities HIG](https://developer.apple.com/design/human-interface-guidelines/live-activities), [environment value](https://developer.apple.com/documentation/swiftui/environmentvalues/isdynamicislandlimitedinwidth)) |
+| E8 | Hero image or video on the inner display | The subject is still visible. Fill versus fit follows the size class or the aspect ratio, or the image has a focal point (prepare page) |
 
 ## F. Release assets
 
-- App Store screenshots must be **1398 × 2034** or **2034 × 1398 px** for the outer display, and **2007 × 2853** or **2853 × 2007 px** for the inner display ([Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)). That page says that starting in April 2027, these screenshots are required for any app built with the iOS 27.1 SDK or later.
+- App Store screenshots are **1398 × 2034** or **2034 × 1398 px** for the outer display, and **2007 × 2853** or **2853 × 2007 px** for the inner display ([Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)). Uploading them is what puts the **optimized for iPhone Duo** badge on the product page.
+- April 2027 is when Duo screenshots become required, and Apple's pages don't use one sentence for who that covers. The specifications page says "any app using the iOS 27.1 SDK or later." The [Oct 5 news post](https://developer.apple.com/news/?id=kkphp5qo), the App Store Connect release notes, and What's New say "any apps or games submitted." Quote both. The full note is `references/app-store.md`.
 - Capture them from Device Hub (see [Capturing screenshots and videos from devices](https://developer.apple.com/documentation/xcode/capturing-screenshots-and-videos-from-devices)).
+- Featuring: in Helpful Details, say the app supports every pose (prepare page).
+- Metadata and screenshots still follow App Review Guidelines 2.3, 2.3.3, and the October 16, 2026 additions 2.3.14 (creative assets) and 2.5.19 (no hidden features).

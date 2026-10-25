@@ -44,5 +44,8 @@ Prefer an even column count. Query `reservedRegions(kind: .division, options: .i
 ## Optional tabletop layout [Tech Talk 111466]
 Only use it when it adds value, for example media at the top and controls on the stable base. It must have the same controls and hierarchy as the other poses. Never make it the only way to reach a feature.
 
+## Hero images [prepare page](https://developer.apple.com/iphone-duo/prepare/)
+An unconditional `.scaleAspectFill`, `.scaledToFill()`, or `.aspectRatio(contentMode: .fill)` crops a hero when the window gets wider. Choose fill or fit from the horizontal size class or the current aspect ratio, or set a focal point. `templates/swiftui/VerticalBars.swift` and `templates/uikit/SizeClassRootViewController.swift` do the size-class choice. `duo-lint` DUO015 flags a fill that has no fit beside it.
+
 ## Testing
-Use `references/test-plan.md` in Device Hub. For a quick visual check of a screenshot, use `tools/duo-preview.html`.
+Use `references/test-plan.md` in Device Hub, and resize iPhone Mirroring on macOS 27. For a quick visual check of a screenshot, use `tools/duo-preview.html`.
