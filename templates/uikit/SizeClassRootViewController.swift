@@ -64,7 +64,6 @@ final class SafeAreaContentViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        background.contentMode = .scaleAspectFill
         background.clipsToBounds = true
         view.addSubview(background)
 
@@ -82,6 +81,11 @@ final class SafeAreaContentViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         background.frame = view.bounds                       // background may extend past the safe area
+        // Prepare page: an unconditional aspect fill crops a hero on a wider display.
+        // Choose fill or fit from the current size class.
+        // https://developer.apple.com/iphone-duo/prepare/
+        let wide = traitCollection.horizontalSizeClass == .regular
+        background.contentMode = wide ? .scaleAspectFit : .scaleAspectFill
         let usable = view.bounds.inset(by: view.safeAreaInsets) // each side handled independently
         _ = usable
     }

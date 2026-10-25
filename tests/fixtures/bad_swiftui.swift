@@ -83,3 +83,30 @@ struct BadArrangementPlacement: View {
         }
     }
 }
+
+struct BadHardcodedPhoneSize: View {
+    let knownPhoneHeights = [812, 844, 896] // expect: DUO014
+
+    var body: some View {
+        GeometryReader { proxy in
+            if proxy.size.height == 852 { // expect: DUO014
+                Text("old phone")
+            }
+            Image("hero")
+                .resizable()
+                .scaledToFill() // expect: DUO015
+        }
+    }
+}
+
+struct BadIdiomSizeClass: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    var body: some View {
+        let isIPad = horizontalSizeClass == .regular // expect: DUO017
+        Text(isIPad ? "wide" : "narrow")
+    }
+}
+
+enum BadCompatibility {
+    static let key = "UIDesignRequiresCompatibility" // expect: DUO018
+}

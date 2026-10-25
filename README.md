@@ -7,6 +7,9 @@ An agent skill and toolkit for building iOS apps that work well on **iPhone Duo*
 - bars that move to the side
 - keeping interactive elements clear of the fold (reserved regions)
 - split views and arrangement views, sheets, Split View multitasking, and games
+- the iOS 27 and 27.1 SDK tiers, camera direction, the hinge, and the App Store product page
+
+Version 0.3.0. Build the full Duo layout with Xcode 27.1 or later and the iOS 27.1 SDK.
 
 Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo HIG](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo), [Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo), the [Design for iPhone Duo Tech Talk](https://developer.apple.com/videos/play/tech-talks/111466/), and the Apple pages they link to. [`references/sources.md`](references/sources.md) lists each source and which claims are verified or still unverified.
 
@@ -17,7 +20,7 @@ Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo 
 | Path | What it's for |
 |---|---|
 | [`SKILL.md`](SKILL.md) | The skill entry point: principles, checklist, and a routing table that points the agent to the right tool or file for each task |
-| [`scripts/duo-lint`](scripts/duo-lint) | A dependency-free Swift scanner (Python 3 stdlib). It flags `UIScreen.main`, fixed widths, orientation and idiom layout, custom bars, `ignoresSafeArea` on controls, symmetric insets, odd grid columns, manually placed controls that ignore reserved regions, custom ellipsis menus, title-only toolbar items, fixed bar spacers, and arrangements nested in scroll views. It prints `file:line`, the rule, and the fix |
+| [`scripts/duo-lint`](scripts/duo-lint) | A dependency-free scanner (Python 3 stdlib) for Swift and property lists. Rules DUO001–DUO013 cover `UIScreen.main`, fixed widths, orientation and idiom layout, custom bars, safe areas, grids, reserved regions, overflow menus, and arrangements. DUO014–DUO018 add hardcoded phone sizes, cropped hero images, a size read only at launch, treating regular width as iPad, and `UIDesignRequiresCompatibility` (ignored when you build for iOS 27 or later). It prints `file:line`, the rule, and the fix |
 | [`tests/`](tests) | `unittest` suite for `duo-lint`, with good and bad Swift fixtures (`python3 -m unittest discover -s tests`) |
 | [`templates/swiftui/`](templates/swiftui) | SwiftUI templates: size-class root, split-view collapse, split and overlay arrangements, fold-aware controls and grid, single-button sheet opt-out, game fill, vertical bar organization, and the preview matrix (`DuoPreviewMatrix.swift`) |
 | [`templates/uikit/`](templates/uikit) | UIKit equivalents of the templates above (no preview matrix) |
@@ -29,7 +32,8 @@ Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo 
 | [`references/test-plan.md`](references/test-plan.md) | A pose-by-pose test plan for the Device Hub simulator or a device |
 | [`references/review-rubric.md`](references/review-rubric.md) | A scored review rubric with ship bar and report template |
 | [`references/design-review-checklist.md`](references/design-review-checklist.md) | Designer pre-ship checklist (the rubric scores its sections) |
-| [`references/sources.md`](references/sources.md) | Apple sources and the claim ledger (verified, corrected, unverified) |
+| [`references/sources.md`](references/sources.md) | Apple sources and the claim ledger (verified, corrected, flagged, unverified). Re-checked 2026-10-25 |
+| [`references/app-store.md`](references/app-store.md) | Product-page badge, the two April 2027 screenshot wordings, featuring, and App Review Guidelines 2.3.14 and 2.5.19 |
 | [`prompts/review-screen.md`](prompts/review-screen.md) | Copy-paste prompt for an agent reviewing a screen with the linter, rubric and test plan |
 | [`.claude-plugin/`](.claude-plugin) | Claude Code plugin manifest and marketplace file |
 | [`install/`](install) | `AGENTS.md` snippet (Codex and Cursor) and a Cursor project rule |

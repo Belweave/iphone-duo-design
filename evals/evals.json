@@ -132,10 +132,10 @@
       "name": "migration",
       "input": "We have a 5-year-old UIKit app. Give me a plan to support iPhone Duo.",
       "assertions": [
-        "Follows references/migration-guide.md order: SDK/baseline, screen/idiom/orientation, resizing, bars, sheets, fold, games/camera, verify",
-        "Mentions Xcode 27.1 / iOS 27.1 SDK for full-screen and vertical bars",
+        "Follows references/migration-guide.md order: SDK/baseline, screen/idiom/orientation, resizing, bars, sheets, fold, games/camera, Liquid Glass, verify",
+        "Mentions Xcode 27.1 or later and the iOS 27.1 SDK for full-screen and vertical bars",
         "Replaces UIScreen.main and custom UIToolbar usage",
-        "Ends with test plan and rubric"
+        "Ends with test plan, rubric, and references/app-store.md"
       ]
     },
     {
@@ -146,6 +146,51 @@
         "Cursor: ~/.cursor/skills or .cursor/skills (optionally the .mdc rule or AGENTS.md)",
         "Codex: ~/.agents/skills or repo .agents/skills, plus AGENTS.md",
         "Optionally npx skills add Belweave/iphone-duo-design"
+      ]
+    },
+    {
+      "name": "app_store_badge_and_deadline",
+      "input": "How do we get the optimized for iPhone Duo badge, and when do Duo screenshots become required?",
+      "assertions": [
+        "Says uploading iPhone Duo screenshots is what shows the badge on the product page",
+        "Quotes both April 2027 wordings: screenshot specifications say any app using the iOS 27.1 SDK or later, and the news post says any apps or games submitted",
+        "Does not collapse the two wordings into one rule",
+        "Points at references/app-store.md",
+        "Mentions featuring Helpful Details should say the app supports every pose",
+        "Summarizes App Review Guidelines 2.3.14 (creative assets) and 2.5.19 (no hidden features), updated October 16, 2026"
+      ]
+    },
+    {
+      "name": "apple_skill_and_sdk_tiers",
+      "input": "Should I use Apple's Xcode skill or this one, and which SDK do I need before April 2027?",
+      "assertions": [
+        "Names xcrun agent skills export and Apple's App Resizability skill",
+        "Says Apple's skill finds most issues and this skill covers the rest",
+        "iOS 26 SDK or earlier: centered with empty space when open",
+        "iOS 27 SDK: fills most of the inner display and still avoids the status bar on the right",
+        "iOS 27.1 SDK with Xcode 27.1 or later: full display and vertical bars",
+        "April 2027 uploads must use the iOS 27 SDK; side bars still need the iOS 27.1 SDK"
+      ]
+    },
+    {
+      "name": "camera_hinge_windows",
+      "input": "Our camera app should follow the person as the Duo opens, react to the hinge, and show a script on the outer display. Also, can we open a second window while it's closed?",
+      "assertions": [
+        "Names the virtual front camera and AVCaptureDeviceDirectionCoordinator",
+        "Says position is not the same as the direction the camera faces",
+        "Names onHingeChange(isEnabled:_:) or UIHingeInteraction, and says hinge data is for effects rather than layout",
+        "Names CameraCaptureAccessory or UISceneAccessory.cameraCapture for outer-display content during capture",
+        "Says new windows can be created on the inner display only, and to use UIWindowScene.ActivationAction"
+      ]
+    },
+    {
+      "name": "liquid_glass_and_live_activity",
+      "input": "We set UIDesignRequiresCompatibility so we can skip Liquid Glass, and our Live Activity gets cut off on Duo. What should we change?",
+      "assertions": [
+        "Says the system ignores UIDesignRequiresCompatibility when you build for iOS 27 or later, so the app can't opt out of Liquid Glass",
+        "Points at the key's documentation page",
+        "Tells the Live Activity to read isDynamicIslandLimitedInWidth and fit the compact or minimal view in a 28pt circle",
+        "Mentions duo-lint DUO018"
       ]
     }
   ]

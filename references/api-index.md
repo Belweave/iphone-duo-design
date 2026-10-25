@@ -5,7 +5,7 @@ connections: [sources]
 
 # API index (iPhone Duo)
 
-Every API named in `SKILL.md`, `templates/` and the references appears on an Apple page listed here. The Duo-specific symbols have iOS 27.1 availability on their API pages. Build with Xcode 27.1 and the iOS 27.1 SDK (Tech Talk 111461).
+Every API named in `SKILL.md`, `templates/` and the references appears on an Apple page listed here. The Duo-specific layout symbols have iOS 27.1 availability on their API pages. Build with Xcode 27.1 or later and the iOS 27.1 SDK (Tech Talk 111461, [prepare page](https://developer.apple.com/iphone-duo/prepare/)). A symbol whose page says iOS 27.0 is called out below.
 
 Base: `https://developer.apple.com/documentation/`
 
@@ -57,5 +57,35 @@ Base: `https://developer.apple.com/documentation/`
 - Screen corners: [`ConcentricRectangle`](https://developer.apple.com/documentation/swiftui/concentricrectangle). The UIKit name is `UICornerConfiguration` (Tech Talk 111461).
 - Avoid:
   - [`UIScreen.main`](https://developer.apple.com/documentation/uikit/uiscreen/main). Apple discourages it; use [`UIWindowScene.screen`](https://developer.apple.com/documentation/uikit/uiwindowscene/screen) or [`UITraitCollection.displayScale`](https://developer.apple.com/documentation/uikit/uitraitcollection/displayscale) instead.
-  - [`userInterfaceIdiom`](https://developer.apple.com/documentation/uikit/uiuserinterfaceidiom) and [`UIInterfaceOrientation`](https://developer.apple.com/documentation/uikit/uiinterfaceorientation) for layout.
+  - [`userInterfaceIdiom`](https://developer.apple.com/documentation/uikit/uiuserinterfaceidiom) and [`UIInterfaceOrientation`](https://developer.apple.com/documentation/uikit/uiinterfaceorientation) for layout. Regular width is not a stand-in for iPad ([prepare page](https://developer.apple.com/iphone-duo/prepare/)).
+  - A screen size read once in `viewDidLoad`, `viewIsAppearing`, or `application(_:didFinishLaunchingWithOptions:)`. Re-read in `layoutSubviews` / `viewDidLayoutSubviews`, or use `viewWillTransition(to:with:)`. In SwiftUI, `GeometryReader` or `onGeometryChange`.
+  - Hardcoded phone point sizes (`bounds.height == 844`, or a list of known phone sizes).
   - Custom `UIToolbar`, `UINavigationBar` or `UITabBar` instances.
+  - [`UIDesignRequiresCompatibility`](https://developer.apple.com/documentation/bundleresources/information-property-list/uidesignrequirescompatibility). The system ignores it when you build for iOS 27 or later.
+
+## Hinge (effects, not layout)
+| SwiftUI | UIKit | Notes |
+|---|---|---|
+| [`onHingeChange(isEnabled:_:)`](https://developer.apple.com/documentation/swiftui/view/onhingechange(isenabled:_:)) | [`UIHingeInteraction`](https://developer.apple.com/documentation/uikit/uihingeinteraction) | iOS 27.1. Both report angle and status. A nil hinge means this device, or this view hierarchy, has none |
+| [`DeviceHinge`](https://developer.apple.com/documentation/swiftui/devicehinge) `.angle`, `.status` | [`UIHingeInteraction.Update.hinge`](https://developer.apple.com/documentation/uikit/uihingeinteraction/update/hinge) → `UIHinge?` | [`DeviceHinge.Status`](https://developer.apple.com/documentation/swiftui/devicehinge/status-swift.struct): `.closed`, `.partiallyOpen`, `.fullyOpen` |
+
+Tech Talk 111464: use the hinge for interaction and effects. Keep layout on arrangement views and reserved regions.
+
+## Camera direction and the outer display
+| API | Notes |
+|---|---|
+| Virtual front camera | [Choosing a camera by the direction it faces](https://developer.apple.com/documentation/avkit/choosing-a-camera-by-the-direction-it-faces). A discovery session with `.builtInWideAngleCamera` or `.builtInUltraWideCamera` and `position: .front` returns it on iPhone Duo. It follows the app between displays. Its capabilities are the ones both physical cameras share |
+| [`AVCaptureDevice.DeviceType.builtInOuterUltraWideCamera`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/devicetype-swift.struct/builtInouterultrawidecamera), [`.builtInInnerUltraWideCamera`](https://developer.apple.com/documentation/avfoundation/avcapturedevice/devicetype-swift.struct/builtininnerultrawidecamera) | The two physical front cameras, when the app needs each camera's own capabilities. Tech Talk 111465: inner up to 1080p/60fps, outer up to 4K/120fps |
+| [`AVCaptureDeviceDirectionCoordinator`](https://developer.apple.com/documentation/avkit/avcapturedevicedirectioncoordinator) (AVKit, iOS 27.1) | Pass the preview view, the device types, and a change handler. Import AVKit. One coordinator per preview. Read direction from the coordinator, not from `AVCaptureDevice.position` |
+| [`sceneAccessory(content:)`](https://developer.apple.com/documentation/swiftui/view/sceneaccessory(content:)) + [`CameraCaptureAccessory`](https://developer.apple.com/documentation/swiftui/cameracaptureaccessory) / [`UISceneAccessory.cameraCapture`](https://developer.apple.com/documentation/uikit/uisceneaccessory/cameracapture(sceneconfiguration:)) | iOS 27.1. Supplementary UI while capturing. On iPhone Duo the system can put it on the outer display. [Registering a camera capture accessory](https://developer.apple.com/documentation/avfoundation/registering-a-camera-capture-accessory-on-iphone-duo). The app must still work when the accessory isn't presented |
+| [`UISceneAccessory`](https://developer.apple.com/documentation/uikit/uisceneaccessory) | iOS 27. The general type. `cameraCapture` is the Duo outer-display case; `externalNonInteractive` is a connected display |
+
+## Multiple windows
+| API | Notes |
+|---|---|
+| [`UIWindowScene.ActivationAction`](https://developer.apple.com/documentation/uikit/uiwindowscene/activationaction) | Tech Talk 111464 calls it `UIWindowSceneActivationAction`. It hides when a new window can't be created. On iPhone Duo, new windows can be created on the inner display only. Handle the error if a request fails |
+
+## Live Activities
+| API | Notes |
+|---|---|
+| [`EnvironmentValues.isDynamicIslandLimitedInWidth`](https://developer.apple.com/documentation/swiftui/environmentvalues/isdynamicislandlimitedinwidth) | iOS 27. True when compact and minimal presentations are narrowed, "for example, on iPhone in landscape orientation or on iPhone Duo." [HIG](https://developer.apple.com/design/human-interface-guidelines/live-activities): fit those presentations in a 28pt-diameter circle |

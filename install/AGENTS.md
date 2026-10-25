@@ -10,3 +10,4 @@ When you create, change or review iOS UI, follow the iPhone Duo skill at `.agent
 - Use system bars, split views and `ArrangementView` / `UIArrangementViewController`. Keep custom controls off active `.division` reserved regions.
 - Before finishing UI work, run `.agents/skills/iphone-duo-design/scripts/duo-lint <changed Swift paths>` and address every finding.
 - Use only Apple's documentation for iPhone Duo facts (see the skill's `references/sources.md`). Never invent API names or dimensions.
+- Build the full layout with Xcode 27.1 or later and the iOS 27.1 SDK. Upload iPhone Duo screenshots so the product page can show the optimized-for-iPhone-Duo badge (`references/app-store.md`).

@@ -41,7 +41,7 @@ struct GoodBackground: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            Image("hero").resizable().scaledToFill().ignoresSafeArea()
+            Image("hero").resizable().ignoresSafeArea()
         }
     }
 }

@@ -98,6 +98,50 @@ class UnitTests(unittest.TestCase):
     def test_supported_orientations_declaration_ok(self):
         self.assertEqual(self.scan("override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }"), [])
 
+    def test_duo014_hardcoded_screen_size(self):
+        self.assertIn((1, "DUO014"), self.scan("if view.bounds.height == 844 { }"))
+        self.assertIn((1, "DUO014"), self.scan("let known = [812, 844, 896]"))
+        self.assertEqual(self.scan("banner.frame = CGRect(x: 0, y: 0, width: 414, height: 60)"), [(1, "DUO002")])
+        self.assertEqual(self.scan("view.frame(width: 44)"), [])
+
+    def test_duo015_cropped_hero(self):
+        src = 'Image("hero")\n    .resizable()\n    .scaledToFill()\n'
+        self.assertEqual(self.scan(src), [(3, "DUO015")])
+        self.assertIn((1, "DUO015"), self.scan("heroView.contentMode = .scaleAspectFill"))
+        chosen = "background.contentMode = wide ? .scaleAspectFit : .scaleAspectFill\n"
+        self.assertEqual(self.scan(chosen), [])
+        aspect = 'Image("hero").aspectRatio(contentMode: wide ? .fit : .fill)\n'
+        self.assertEqual(self.scan(aspect), [])
+        self.assertEqual(self.scan("Color.red.scaledToFill()"), [])
+
+    def test_duo016_size_read_at_launch(self):
+        launch = "override func viewDidLoad() {\n    super.viewDidLoad()\n    cached = view.bounds.size\n}\n"
+        self.assertEqual(self.scan(launch), [(3, "DUO016")])
+        appearing = "override func viewIsAppearing(_ animated: Bool) {\n    side = view.bounds.width\n}\n"
+        self.assertEqual(self.scan(appearing), [(2, "DUO016")])
+        layout = "override func viewDidLayoutSubviews() {\n    frame = view.bounds\n}\n"
+        self.assertEqual(self.scan(layout), [])
+        swiftui = "var body: some View {\n    GeometryReader { proxy in Text(\"\\(proxy.size.width)\") }\n}\n"
+        self.assertEqual(self.scan(swiftui), [])
+
+    def test_duo017_regular_width_as_ipad(self):
+        self.assertEqual(
+            self.scan("let isIPad = horizontalSizeClass == .regular"),
+            [(1, "DUO017")],
+        )
+        both = "if traitCollection.userInterfaceIdiom == .pad && traitCollection.horizontalSizeClass == .regular { }"
+        self.assertEqual(sorted(self.scan(both)), [(1, "DUO004"), (1, "DUO017")])
+        self.assertEqual(self.scan("if horizontalSizeClass == .regular { regular() }"), [])
+        phone = "if UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact { }"
+        self.assertIn((1, "DUO017"), self.scan(phone))
+
+    def test_duo018_design_requires_compatibility(self):
+        swift = 'let key = "UIDesignRequiresCompatibility"\n'
+        self.assertEqual(self.scan(swift), [(1, "DUO018")])
+        plist = "<key>UIDesignRequiresCompatibility</key>\n<true/>\n"
+        self.assertEqual(self.scan(plist), [(1, "DUO018")])
+        self.assertEqual(self.scan("// UIDesignRequiresCompatibility was removed\nlet x = 1\n"), [])
+
 
 class CLITests(unittest.TestCase):
     def run_cli(self, *args):
@@ -133,6 +177,20 @@ class CLITests(unittest.TestCase):
         r = self.run_cli("--list-rules")
         self.assertEqual(r.returncode, 0)
         self.assertIn("DUO013", r.stdout)
+        for rid in ("DUO014", "DUO015", "DUO016", "DUO017", "DUO018"):
+            self.assertIn(rid, r.stdout)
+
+    def test_plist_file_is_scanned(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "Info.plist")
+            with open(p, "w") as fh:
+                fh.write("<key>UIDesignRequiresCompatibility</key>\n<true/>\n")
+            r = self.run_cli("--format", "json", p)
+            self.assertEqual(r.returncode, 1)
+            data = json.loads(r.stdout)
+            self.assertEqual(data["files"], 1)
+            self.assertEqual([f["rule"] for f in data["findings"]], ["DUO018"])
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@
 It is a heuristic, line-based checker (Python 3.8+ standard library only). It does not
 compile or type-check Swift, so treat every finding as "look here", not as proof.
 Each rule cites the Apple page it is based on; see references/sources.md.
+It scans .swift files and property lists (.plist), so UIDesignRequiresCompatibility
+in Info.plist is visible.
 
 Usage:
   scripts/duo-lint [PATH ...] [--format text|json] [--min-width N] [--strict]
@@ -25,6 +27,9 @@ TT_PREP = "https://developer.apple.com/videos/play/tech-talks/111461/"
 TT_POSE = "https://developer.apple.com/videos/play/tech-talks/111463/"
 TT_BAR = "https://developer.apple.com/videos/play/tech-talks/111462/"
 UISCREEN_MAIN = "https://developer.apple.com/documentation/uikit/uiscreen/main"
+PREPARE_PAGE = "https://developer.apple.com/iphone-duo/prepare/"
+COMPAT_KEY = "https://developer.apple.com/documentation/bundleresources/information-property-list/uidesignrequirescompatibility"
+LIQUID = "https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass"
 
 RULES = {
     "DUO001": dict(
@@ -135,6 +140,52 @@ RULES = {
             "not inside List, ScrollView or NavigationSplitView.",
         source=PREP + " ; " + TT_POSE,
     ),
+    "DUO014": dict(
+        name="hardcoded-screen-size",
+        severity="warning",
+        message="Hardcoded phone screen size ({value}). A comparison or list of known phone sizes "
+                "won't match iPhone Duo.",
+        fix="Delete the size check. Branch on size classes or the container's current bounds, and read "
+            "that size again whenever the window changes.",
+        source=PREPARE_PAGE,
+    ),
+    "DUO015": dict(
+        name="cropped-hero",
+        severity="warning",
+        message="Hero image or video uses aspect fill ({value}). Fill crops important content on a wider display.",
+        fix="Choose fill or fit from the current size class or aspect ratio, or set a focal point. "
+            "Don't leave .scaleAspectFill, .scaledToFill(), .aspectRatio(contentMode: .fill), "
+            "or .resizeAspectFill as the only mode.",
+        source=PREPARE_PAGE,
+    ),
+    "DUO016": dict(
+        name="size-read-at-launch",
+        severity="warning",
+        message="Screen or view size is read in {value}. A fold can resize the app later in the session, "
+                "so a size captured here goes stale.",
+        fix="Do size-dependent layout in layoutSubviews or viewDidLayoutSubviews, and use "
+            "viewWillTransition(to:with:) for work that must run when the size changes. "
+            "In SwiftUI, read the size with GeometryReader or onGeometryChange.",
+        source=PREPARE_PAGE,
+    ),
+    "DUO017": dict(
+        name="regular-width-as-ipad",
+        severity="warning",
+        message="Size class is standing in for the device ({value}). A phone app can be regular width "
+                "on iPhone Duo and in resizable iPhone Mirroring.",
+        fix="Branch on the size class or the available space itself. Don't treat regular width as iPad "
+            "or compact width as the only phone layout, and don't gate that choice on userInterfaceIdiom.",
+        source=PREPARE_PAGE,
+    ),
+    "DUO018": dict(
+        name="design-requires-compatibility",
+        severity="warning",
+        message="UIDesignRequiresCompatibility is ignored when you build for iOS 27 or later, "
+                "so the app can't opt out of Liquid Glass.",
+        fix="Remove the key. Standard controls and bars adopt Liquid Glass; drop custom backgrounds "
+            "on bars, split views, and controls that would cover it.",
+        source=COMPAT_KEY + " ; " + LIQUID,
+    ),
 }
 
 SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}
@@ -244,6 +295,41 @@ P_FIXED_SPACE = re.compile(r"\.fixedSpace\b|\bfixedSpace\s*\(")
 P_CONTAINER_OPEN = re.compile(r"\b(ScrollView|List|NavigationSplitView|LazyVStack|LazyHStack|Form)\b[^{}]*\{")
 P_ARRANGEMENT = re.compile(r"\bArrangementView\b")
 
+# Known iPhone point sizes Apple's prepare page uses as the example of a check that misses iPhone Duo
+# (bounds.height == 844, or a list of known phone sizes). Not Duo dimensions.
+_PHONE_POINTS = (
+    "320|375|390|393|402|414|428|430|440|568|667|736|812|844|852|874|896|926|932|956"
+)
+_CMP = r"==|!=|<=|>=|<|>"
+P_DEVICE_CMP = re.compile(
+    rf"(?:\.|\b)(?:bounds|size|frame)\b(?:\s*\.\s*(?:width|height|size))?\s*(?:{_CMP})\s*(?:{_PHONE_POINTS})\b"
+    rf"|\b(?:width|height)\s*(?:{_CMP})\s*(?:{_PHONE_POINTS})\b"
+    rf"|\b(?:{_PHONE_POINTS})\s*(?:{_CMP})\s*(?:\w+\s*\.\s*)*(?:bounds|size|frame|width|height)\b"
+)
+P_BRACKET_LIST = re.compile(r"\[([^\[\]]*)\]")
+_PHONE_POINT_SET = {int(n) for n in _PHONE_POINTS.split("|")}
+P_FILL = (
+    (re.compile(r"\.scaleAspectFill\b"), ".scaleAspectFill"),
+    (re.compile(r"\.resizeAspectFill\b"), ".resizeAspectFill"),
+    (re.compile(r"\.scaledToFill\s*\("), ".scaledToFill()"),
+    (re.compile(r"\.aspectRatio\s*\([^)\n]*contentMode\s*:\s*\.fill\b"), ".aspectRatio(contentMode: .fill)"),
+)
+# A nearby fit mode means the code already chooses, which is what Apple asks for.
+P_FIT = re.compile(
+    r"\.scaleAspectFit\b|\.resizeAspect\b(?!Fill)|\.scaledToFit\s*\(|contentMode\s*:\s*\.fit\b|\.fit\b"
+)
+P_MEDIA = re.compile(r"\b(?:Image|UIImageView|UIImage|AVPlayer|VideoPlayer|hero|banner|video)\b", re.I)
+P_LAUNCH_FUNC = re.compile(r"\bfunc\s+(viewDidLoad|viewIsAppearing)\b|\b(didFinishLaunchingWithOptions)\b")
+P_LAUNCH_SIZE = re.compile(r"\bbounds\b|\bUIScreen\b")
+P_IPAD_FROM_SIZE = re.compile(
+    r"\b(?:isIPad|isPad|iPadLayout)\b[^\n]{0,80}horizontalSizeClass\s*==\s*\.regular"
+    r"|horizontalSizeClass\s*==\s*\.regular[^\n]{0,80}\b(?:isIPad|isPad|iPadLayout)\b"
+)
+P_SIZE_CLASS_EQ = re.compile(r"horizontalSizeClass\s*==\s*\.(regular|compact)")
+P_PAD_SIGNAL = re.compile(r"userInterfaceIdiom[^\n]{0,40}\.pad|==\s*\.pad|\b(?:isIPad|isPad|iPadLayout)\b")
+P_PHONE_IDIOM = re.compile(r"userInterfaceIdiom\s*==\s*\.phone")
+P_COMPAT_KEY = re.compile(r"\bUIDesignRequiresCompatibility\b")
+
 
 def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
     raw_lines = text.split("\n")
@@ -280,6 +366,10 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
     # brace-depth stack of (label, depth_at_open)
     stack = []
     depth = 0
+    pending_launch = False
+    pending_launch_name = None
+    launch_depth = None
+    launch_name = None
 
     def inside(label_set):
         for label, _ in stack:
@@ -407,6 +497,58 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
             if where:
                 add("DUO013", idx, m.start(), where)
 
+        # DUO014: equality (or other comparison) against a known phone point size, or a list of them.
+        m = P_DEVICE_CMP.search(line)
+        if m:
+            add("DUO014", idx, m.start(), m.group(0).strip())
+        else:
+            for lm in P_BRACKET_LIST.finditer(line):
+                nums = [int(n) for n in re.findall(r"\b\d+\b", lm.group(1))]
+                known = [n for n in nums if n in _PHONE_POINT_SET]
+                if len(known) >= 2:
+                    add("DUO014", idx, lm.start(), "list " + ", ".join(str(n) for n in known))
+                    break
+
+        # DUO015: unconditional aspect fill on a hero image or video.
+        # scaleAspectFill / resizeAspectFill are already image and video modes.
+        # scaledToFill and aspectRatio(contentMode: .fill) need a media name nearby.
+        if not any(P_FIT.search(code[j]) for j in range(max(0, idx - 8), min(len(code), idx + 9))):
+            media_near = any(
+                P_MEDIA.search(code[j]) or P_MEDIA.search(keep[j])
+                for j in range(max(0, idx - 6), idx + 1)
+            )
+            for pat, label in P_FILL:
+                m = pat.search(line)
+                if not m:
+                    continue
+                needs_media = label.startswith(".scaledToFill") or label.startswith(".aspectRatio")
+                if needs_media and not media_near:
+                    continue
+                add("DUO015", idx, m.start(), label)
+                break
+
+        # DUO017: regular width treated as iPad, or compact width as phone-only.
+        if P_IPAD_FROM_SIZE.search(line):
+            add("DUO017", idx, 0, "regular width stored as iPad")
+        else:
+            m = P_SIZE_CLASS_EQ.search(line)
+            if m:
+                window = "\n".join(code[max(0, idx - 3): idx + 4])
+                if m.group(1) == "regular" and P_PAD_SIGNAL.search(window):
+                    add("DUO017", idx, m.start(), "regular width treated as iPad")
+                elif m.group(1) == "compact" and P_PHONE_IDIOM.search(window):
+                    add("DUO017", idx, m.start(), "compact width treated as phone-only")
+
+        # DUO018: the compatibility key, including inside a string or a property list.
+        m = P_COMPAT_KEY.search(kline)
+        if m:
+            add("DUO018", idx, m.start())
+
+        launched = P_LAUNCH_FUNC.search(line)
+        if launched:
+            pending_launch = True
+            pending_launch_name = launched.group(1) or launched.group(2)
+
         # update brace stack, scanning characters so labels attach to their own "{"
         pos = 0
         opens = []
@@ -418,12 +560,25 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
         for ci, ch in enumerate(line):
             if ch == "{":
                 depth += 1
+                if pending_launch:
+                    launch_depth = depth
+                    launch_name = pending_launch_name
+                    pending_launch = False
                 if ci in open_labels:
                     stack.append((open_labels[ci], depth))
             elif ch == "}":
                 while stack and stack[-1][1] >= depth:
                     stack.pop()
                 depth = max(0, depth - 1)
+
+        # DUO016 runs after braces so a size read on the same line as the function is inside it.
+        if launch_depth is not None and depth < launch_depth:
+            launch_depth = None
+            launch_name = None
+        elif launch_depth is not None:
+            m = P_LAUNCH_SIZE.search(line)
+            if m:
+                add("DUO016", idx, m.start(), launch_name or "launch")
 
     return findings
 
@@ -432,13 +587,13 @@ def iter_swift_files(paths):
     skip_dirs = {".git", ".build", "build", "DerivedData", "Pods", "Carthage", "node_modules", ".swiftpm"}
     for p in paths:
         if os.path.isfile(p):
-            if p.endswith(".swift"):
+            if p.endswith(".swift") or p.endswith(".plist"):
                 yield p
             continue
         for root, dirs, files in os.walk(p):
             dirs[:] = sorted(d for d in dirs if d not in skip_dirs)
             for f in sorted(files):
-                if f.endswith(".swift"):
+                if f.endswith(".swift") or f.endswith(".plist"):
                     yield os.path.join(root, f)
 
 
