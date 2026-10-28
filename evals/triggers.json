@@ -15,6 +15,7 @@
     { "input": "Export Apple's Xcode resizability skill and finish the iPhone Duo layout", "should_trigger": true },
     { "input": "UIDesignRequiresCompatibility is still in our Info.plist. Will iOS 27 honor it on iPhone Duo?", "should_trigger": true },
     { "input": "Use the hinge angle on iPhone Duo to drive an effect, not the layout", "should_trigger": true },
+    { "input": "Preview an iPhone Duo fold with two mockups and a fold angle slider", "should_trigger": true },
     { "input": "How do I make a regular iPhone app?", "should_trigger": false },
     { "input": "Design a website landing page", "should_trigger": false },
     { "input": "Android foldable phone UI tips", "should_trigger": false },

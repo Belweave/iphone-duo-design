@@ -10,6 +10,7 @@ final class GoodViewController: UIViewController {
         let screen = view.window?.windowScene?.screen
         _ = (scale, screen)
         navigationItem.pinnedTrailingGroup = UIBarButtonItemGroup(barButtonItems: [], representativeItem: nil)
+        navigationItem.additionalOverflowItems = [UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: nil)]
     }
 
     override func viewDidLayoutSubviews() {

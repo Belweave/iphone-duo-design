@@ -1,0 +1,242 @@
+<!doctype html>
+<!--
+  Fold preview: a small drawing of iPhone Duo for comparing mockups as the fold opens.
+  Copy this file if you want one page per screen. No dependencies.
+
+  Schematic only. Not a device render, and not Apple's dimensions. The fold axis
+  drawn here is unverified (Apple never states it in words). The slider is a
+  drawing control, from shut to flat. It is not a DeviceHinge reading.
+
+  Closed shows the left mockup on a single outer outline.
+  Open shows the left and right mockups on the two inner panels.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fold preview</title>
+<style>
+:root {
+  --bg: #101216;
+  --ink: #e8eaee;
+  --muted: #9aa3af;
+  --line: #2a3038;
+  --bezel: #d5dae1;
+  --screen: #171b21;
+  --hinge: #8b939e;
+  --angle: 180;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 system-ui, sans-serif;
+}
+header, footer { padding: 16px 20px; }
+header { border-bottom: 1px solid var(--line); }
+h1 { font-size: 18px; font-weight: 650; margin: 0 0 4px; }
+p { margin: 0; color: var(--muted); max-width: 62ch; }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  align-items: end;
+  padding: 16px 20px 0;
+}
+label.file { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+input[type="file"] { color: var(--ink); max-width: 220px; }
+.angle {
+  flex: 1;
+  min-width: 220px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px 10px;
+  align-items: center;
+}
+.angle span { font-size: 12px; color: var(--muted); }
+.angle output { grid-column: 1 / -1; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: #8cc8ff; }
+.stage {
+  min-height: 460px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.rig {
+  position: relative;
+  width: 420px;
+  height: 380px;
+  perspective: 1400px;
+}
+.book {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform-style: preserve-3d;
+  opacity: clamp(0, calc(var(--angle) / 28), 1);
+}
+.wing {
+  width: 158px;
+  height: 330px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.wing.left {
+  transform-origin: right center;
+  transform: rotateY(calc((180 - var(--angle)) * 0.5deg));
+}
+.wing.right {
+  transform-origin: left center;
+  transform: rotateY(calc((var(--angle) - 180) * 0.5deg));
+}
+.hinge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 274px;
+  margin: -137px 0 0 -1px;
+  border-radius: 2px;
+  background: var(--hinge);
+  opacity: calc(var(--angle) / 180);
+}
+.closed {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 168px;
+  height: 340px;
+  margin: -170px 0 0 -84px;
+  opacity: clamp(0, calc((40 - var(--angle)) / 40), 1);
+}
+.bezel {
+  position: relative;
+  height: 100%;
+  border: 3px solid var(--bezel);
+  border-radius: 28px;
+  padding: 10px;
+  background: #12151a;
+}
+.screen {
+  height: 100%;
+  border-radius: 18px;
+  background: var(--screen) center/cover no-repeat;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+}
+.screen.filled { color: transparent; }
+.cam {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fold preview</h1>
+  <p>A drawn Duo outline. Drop a mockup on each panel, then move the fold from shut to flat.</p>
+</header>
+<div class="controls">
+  <div class="angle">
+    <span>Closed</span>
+    <input id="angle" type="range" min="0" max="180" value="180" aria-label="Fold angle">
+    <span>Open</span>
+    <output id="readout" for="angle">Open · 180°</output>
+  </div>
+  <label class="file">Left mockup, and the closed screen
+    <input id="file-a" type="file" accept="image/*">
+  </label>
+  <label class="file">Right mockup
+    <input id="file-b" type="file" accept="image/*">
+  </label>
+</div>
+<div class="stage">
+  <div class="rig" id="rig">
+    <div class="book">
+      <div class="wing left"><div class="bezel"><div class="screen" data-slot="a">Left mockup</div></div></div>
+      <div class="hinge"></div>
+      <div class="wing right"><div class="bezel"><div class="screen" data-slot="b">Right mockup</div></div></div>
+    </div>
+    <div class="closed">
+      <div class="bezel">
+        <div class="screen" data-slot="a">Left mockup</div>
+        <div class="cam" title="Schematic camera mark"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  Schematic. The slider is a drawing of the fold, from shut to flat, and the axis is unverified. For screenshot guides at Apple's aspect ratios, use duo-preview.html.
+</footer>
+<script>
+(function () {
+  var rig = document.getElementById("rig");
+  var angle = document.getElementById("angle");
+  var readout = document.getElementById("readout");
+  var urls = { a: "", b: "" };
+
+  function paint() {
+    var n = Number(angle.value);
+    rig.style.setProperty("--angle", n);
+    var word = n < 20 ? "Closed" : n < 160 ? "Partly open" : "Open";
+    readout.textContent = word + " · " + n + "°";
+  }
+
+  function show(slot, file) {
+    if (!file) return;
+    if (urls[slot]) URL.revokeObjectURL(urls[slot]);
+    urls[slot] = URL.createObjectURL(file);
+    var nodes = document.querySelectorAll('[data-slot="' + slot + '"]');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].style.backgroundImage = "url(" + urls[slot] + ")";
+      nodes[i].classList.add("filled");
+    }
+  }
+
+  function bind(id, slot) {
+    var input = document.getElementById(id);
+    input.addEventListener("change", function () {
+      show(slot, input.files && input.files[0]);
+    });
+  }
+
+  var fromHash = /(?:^#|&)angle=(\d+)/.exec(location.hash);
+  if (fromHash) angle.value = String(Math.max(0, Math.min(180, Number(fromHash[1]))));
+
+  angle.addEventListener("input", paint);
+  bind("file-a", "a");
+  bind("file-b", "b");
+
+  var screens = document.querySelectorAll(".screen");
+  for (var i = 0; i < screens.length; i++) {
+    screens[i].addEventListener("click", function () {
+      document.getElementById(this.getAttribute("data-slot") === "b" ? "file-b" : "file-a").click();
+    });
+    screens[i].addEventListener("dragover", function (e) { e.preventDefault(); });
+    screens[i].addEventListener("drop", function (e) {
+      e.preventDefault();
+      var file = e.dataTransfer.files && e.dataTransfer.files[0];
+      show(this.getAttribute("data-slot"), file);
+    });
+  }
+
+  paint();
+})();
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "iphone-duo-design",
   "displayName": "iPhone Duo Design",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Agent toolkit for adapting iOS apps to iPhone Duo: guidance grounded in Apple's docs, a Swift linter, SwiftUI/UIKit templates, a preview tool, a test plan and a review rubric.",
   "author": { "name": "belweave" },
   "homepage": "https://github.com/Belweave/iphone-duo-design",

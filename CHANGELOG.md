@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.4.0 — 2026-10-28
+belweave's fold-aware layout practice, a small fold-preview page, and two lint checks that can see it in code.
+
+### Added
+- `references/fold-aware-layout.md`: two layouts that flex, the path from general to specific, fixed pane pairs, journeys across the fold, full screen on one button, navigation while open, judging motion, reach, a short toolbar, what may sit under the bar, gutters judged by eye, and panel states. This is belweave's practice. It is not an Apple source, and `references/sources.md` says so.
+- A working method in `SKILL.md`: compare several versions, preview the fold, watch a recording at full speed and at quarter speed, keep the rules in the skill or in `AGENTS.md`, and test on a real iPhone Duo.
+- `tools/fold-preview.html`: a dependency-free drawing of a Duo outline, a fold-angle slider, and two mockup slots.
+- Lint rule DUO019: a destructive toolbar action, including Delete, outside the overflow menu.
+- Checklist section 7, rubric evidence, test-plan rows B5, B6, D8, D9, and E9, and a review-prompt pass that uses them.
+- An eval and a trigger for the fold-aware layout pass.
+
+### Changed
+- DUO006 now flags text that ignores the safe area, and its message names the toolbar. The background may run under the bar. Text and controls may not.
+- Principle 1 now says the narrow and wide layouts flex through closed, open, portrait, landscape, and Split View.
+- The test plan, the designer checklist, and `install/AGENTS.md` treat a simulator pass as the daily loop and a real iPhone Duo as the pass before ship.
+
 ## 0.3.0 — 2026-10-25
 iPhone Duo on the App Store, and the iOS 27 / 27.1 APIs that shipped with it. Every new claim was checked against Apple's pages on this date. Where two Apple pages disagree, both sentences are quoted.
 

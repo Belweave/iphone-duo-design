@@ -6,8 +6,10 @@ Use this checklist to review any screen, sheet, or flow before you ship it on iP
 
 To score a review, use [`review-rubric.md`](review-rubric.md). It maps each section below to an area, the evidence it needs, and blocking failures. For the step-by-step device run, use [`test-plan.md`](test-plan.md).
 
+Sections 1–6 follow Apple's pages, listed under Sources. Section 7 is belweave's layout practice ([`fold-aware-layout.md`](fold-aware-layout.md)), and section 8 is the working method in `SKILL.md`. Those two are not Apple documentation.
+
 ## 1. Size classes and resizing
-- [ ] The layout targets **compact width on the outer display** and **regular width on the inner display**, and doesn't have a custom layout for each pose.
+- [ ] The layout targets **compact width on the outer display** and **regular width on the inner display**. One narrow layout and one wide layout flex through closed, open, portrait, landscape, and Split View.
 - [ ] It's built with layout margins and safe area insets. There are no fixed widths, breakpoints, or metrics tied to one screen.
 - [ ] Layout math uses the scene or container bounds, not the screen dimensions, and the size is read again when the window changes. Decisions don't depend on the device idiom, interface orientation, or a list of known phone point sizes. Regular width is not treated as iPad.
 - [ ] Every view, sheet, and popover resizes cleanly when the device is closed, open, partially folded, and rotated in each pose.
@@ -51,9 +53,34 @@ To score a review, use [`review-rubric.md`](review-rubric.md). It maps each sect
 - [ ] Those screenshots are uploaded in App Store Connect, which is what shows the **optimized for iPhone Duo** badge. April 2027 is the deadline, and Apple states the audience two ways; see `app-store.md`.
 - [ ] A featuring nomination's Helpful Details says the app supports every pose.
 - [ ] Creative assets follow App Review Guideline 2.3.14, and screenshots show the app in use (2.3, 2.3.3). The binary has no hidden features (2.5.19). Guidelines last updated October 16, 2026.
-- [ ] Each screen has been checked in `tools/duo-preview.html` with the fold overlay on and the guides showing.
-- [ ] The app has been tested in a simulator or on an iPhone Duo in every pose and orientation, and the window has been resized in iPhone Mirroring on macOS 27.
+- [ ] Each screen has been checked in `tools/duo-preview.html` with the fold overlay on and the guides showing. Mockups have been scrubbed in `tools/fold-preview.html`.
+- [ ] The app has been tested in Device Hub in every pose and orientation, the window has been resized in iPhone Mirroring on macOS 27, and the same flow has been run on a real iPhone Duo.
 - [ ] The build uses Xcode 27.1 or later and the iOS 27.1 SDK, and Info.plist does not set `UIDesignRequiresCompatibility`.
+
+## 7. Fold-aware layout
+
+belweave's practice, from [`fold-aware-layout.md`](fold-aware-layout.md). Score it with the rubric areas that cite §7.
+
+- [ ] The path runs from general to specific. Shut, the last screen fills the display. Open, that screen and the one before it are both up. Folding leaves the order alone.
+- [ ] Side by side is a fixed pair: sidebar with content, or content with detail. The detail pane carries a Close of its own.
+- [ ] Unfolding places an open detail beside its parent, and the work continues there.
+- [ ] Full screen is available, and the same button leaves it.
+- [ ] On the open phone, a list opens on the left and the current content stays on the right until a row is picked. Opening the sidebar hides an open detail and brings it back when the sidebar closes.
+- [ ] Custom layout is reserved for the case where no system component fits. System bars, sheets, and split views already move on fold, unfold, and rotation.
+- [ ] The fold was watched in motion. A screen recording was played at full speed, then at quarter speed.
+- [ ] On the closed phone the primary action sits at the bottom of the toolbar. On the open phone, nothing important sits in the bottom-right corner.
+- [ ] The toolbar shows only the actions this screen needs. Destructive actions, including Delete, are only in the overflow menu.
+- [ ] Background color may run under the toolbar. Text and controls do not.
+- [ ] A cramped gutter was widened by eye, especially between sidebar and content in landscape. The value still comes from the live insets.
+- [ ] Each panel state has a clear way to leave it, and the person can change the layout.
+
+## 8. Working method
+
+From the working method in `SKILL.md`.
+
+- [ ] Several versions of the idea were compared side by side before one was chosen.
+- [ ] `tools/fold-preview.html` was used: a drawn outline, the fold slider, and both mockup slots.
+- [ ] The layout rules are in this skill or in the app repo's `AGENTS.md`, beside Apple's Duo guidance.
 
 ## Not published by Apple (don't hard-code)
 Apple's pages don't publish point dimensions, scale factor, the fold region's width when partially folded, safe area inset values, layout margin values, the side-control region's width, or the camera region's size. The fold's division region has zero width when the device is flat. Read live values at runtime (safe area insets, reserved region frames) instead of hard-coding them.

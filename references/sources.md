@@ -7,6 +7,8 @@ connections: [api-index, hig-summary]
 
 Ground truth for this skill is Apple's own pages and the Apple API docs they link to. Nothing else counts as a source for iPhone Duo facts. Checked on 2026-10-25. The v0.1 ledger below was re-checked on 2026-10-17 and is kept. The v0.3.0 ledger follows it.
 
+`references/fold-aware-layout.md` is belweave's layout practice (two layouts, the path, panes, the toolbar, reach, gutters). It is not a source of device facts, and it is not in the ledger below. Where it overlaps an Apple rule, the Apple page in this file still wins.
+
 ## Primary pages
 
 | Short name | URL |

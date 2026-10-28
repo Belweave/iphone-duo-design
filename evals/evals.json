@@ -192,6 +192,18 @@
         "Tells the Live Activity to read isDynamicIslandLimitedInWidth and fit the compact or minimal view in a 28pt circle",
         "Mentions duo-lint DUO018"
       ]
+    },
+    {
+      "name": "fold_aware_layout",
+      "input": "We're designing a mail app for iPhone Duo. When the phone is closed the message is full screen. What should happen when it opens, where does Delete go, and how should we preview the fold before we have a device?",
+      "assertions": [
+        "Uses two layouts, narrow and wide, rather than a layout per pose",
+        "Opening the phone places the message beside its parent and keeps the path order",
+        "Delete, or any destructive action, goes only in the overflow menu",
+        "Points at tools/fold-preview.html with a fold slider and mockup slots",
+        "Says to test on a real iPhone Duo, not only the simulator",
+        "Treats references/fold-aware-layout.md as belweave practice, separate from Apple's pages"
+      ]
     }
   ]
 }

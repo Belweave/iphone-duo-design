@@ -9,7 +9,7 @@ An agent skill and toolkit for building iOS apps that work well on **iPhone Duo*
 - split views and arrangement views, sheets, Split View multitasking, and games
 - the iOS 27 and 27.1 SDK tiers, camera direction, the hinge, and the App Store product page
 
-Version 0.3.0. Build the full Duo layout with Xcode 27.1 or later and the iOS 27.1 SDK.
+Version 0.4.0. Build the full Duo layout with Xcode 27.1 or later and the iOS 27.1 SDK.
 
 Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo HIG](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo), [Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo), the [Design for iPhone Duo Tech Talk](https://developer.apple.com/videos/play/tech-talks/111466/), and the Apple pages they link to. [`references/sources.md`](references/sources.md) lists each source and which claims are verified or still unverified.
 
@@ -20,12 +20,14 @@ Everything here is grounded in Apple's own pages: the [Designing for iPhone Duo 
 | Path | What it's for |
 |---|---|
 | [`SKILL.md`](SKILL.md) | The skill entry point: principles, checklist, and a routing table that points the agent to the right tool or file for each task |
-| [`scripts/duo-lint`](scripts/duo-lint) | A dependency-free scanner (Python 3 stdlib) for Swift and property lists. Rules DUO001–DUO013 cover `UIScreen.main`, fixed widths, orientation and idiom layout, custom bars, safe areas, grids, reserved regions, overflow menus, and arrangements. DUO014–DUO018 add hardcoded phone sizes, cropped hero images, a size read only at launch, treating regular width as iPad, and `UIDesignRequiresCompatibility` (ignored when you build for iOS 27 or later). It prints `file:line`, the rule, and the fix |
+| [`scripts/duo-lint`](scripts/duo-lint) | A dependency-free scanner (Python 3 stdlib) for Swift and property lists. Rules DUO001–DUO013 cover `UIScreen.main`, fixed widths, orientation and idiom layout, custom bars, safe areas, grids, reserved regions, overflow menus, and arrangements. DUO014–DUO018 add hardcoded phone sizes, cropped hero images, a size read only at launch, treating regular width as iPad, and `UIDesignRequiresCompatibility` (ignored when you build for iOS 27 or later). DUO006 also flags text that ignores the safe area. DUO019 flags a destructive toolbar action, including Delete, that isn't in the overflow menu. It prints `file:line`, the rule, and the fix |
 | [`tests/`](tests) | `unittest` suite for `duo-lint`, with good and bad Swift fixtures (`python3 -m unittest discover -s tests`) |
 | [`templates/swiftui/`](templates/swiftui) | SwiftUI templates: size-class root, split-view collapse, split and overlay arrangements, fold-aware controls and grid, single-button sheet opt-out, game fill, vertical bar organization, and the preview matrix (`DuoPreviewMatrix.swift`) |
 | [`templates/uikit/`](templates/uikit) | UIKit equivalents of the templates above (no preview matrix) |
 | [`tools/duo-preview.html`](tools/duo-preview.html) | Offline visual previewer. It drops a screenshot into outer and inner display frames at Apple's screenshot aspect ratios, with portrait and landscape, a half-folded overlay, side-control and safe-area guides, a 50/50 Split View, and split and overlay arrangement diagrams |
+| [`tools/fold-preview.html`](tools/fold-preview.html) | A small offline drawing of a Duo outline that opens and closes. A slider sets the fold angle, and two slots take mockup images. Copy the file for one page per screen. Schematic only: no device dimensions |
 | [`references/hig-summary.md`](references/hig-summary.md) | Condensed Apple guidance with a source tag on every point |
+| [`references/fold-aware-layout.md`](references/fold-aware-layout.md) | belweave's layout practice: two layouts, the path, pane pairs, the toolbar, reach, and gutters. Not an Apple source |
 | [`references/api-index.md`](references/api-index.md) | Every API this skill names, linked to its Apple doc page |
 | [`references/patterns.md`](references/patterns.md) | Layout patterns mapped to templates |
 | [`references/migration-guide.md`](references/migration-guide.md) | A step-by-step migration of an existing app |
@@ -100,7 +102,7 @@ To suppress a finding, add `// duo-lint:disable=DUO002` on the line or the line 
 
 ## Design helpers
 
-Two helpers for reviewing designs, both independent and not made or endorsed by Apple.
+Helpers for reviewing designs. All of them are independent and not made or endorsed by Apple.
 
 ### `tools/duo-preview.html`
 A single offline HTML file with no dependencies. Open it in any modern browser.
@@ -114,7 +116,10 @@ A single offline HTML file with no dependencies. Open it in any modern browser.
 
 ![Preview tool, landscape, half-folded, overlay arrangement](docs/images/duo-preview-light-landscape-folded.png)
 
-For code-level previews, `templates/swiftui/DuoPreviewMatrix.swift` renders a view under each size-class configuration Apple names. It doesn't invent display sizes. The fold, cameras and vertical bars only appear in the Device Hub simulator.
+### `tools/fold-preview.html`
+A smaller offline file, also with no dependencies. It draws a Duo outline that opens and closes. A range slider sets the fold angle, from shut to flat, and two slots take mockup images (drop, pick, or click a panel). Closed shows the left mockup on the outer outline. Open shows the left and right mockups on the inner panels. The drawing is a schematic: the fold axis is unverified, and the slider is not a hinge-sensor reading. Copy the file when you want one page per screen.
+
+For code-level previews, `templates/swiftui/DuoPreviewMatrix.swift` renders a view under each size-class configuration Apple names. It doesn't invent display sizes. The fold, cameras and vertical bars only appear in the Device Hub simulator. Confirm the ship pass on a real iPhone Duo, not only in the simulator.
 
 ### `references/design-review-checklist.md`
 A short pre-ship checklist covering size classes, vertical controls, the fold and reserved regions, arrangements, sheets, Split View, and review assets. Each section links back to Apple's source pages, and [`review-rubric.md`](references/review-rubric.md) scores it.

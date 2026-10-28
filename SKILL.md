@@ -6,19 +6,20 @@ license: MIT
 
 # iPhone Duo design toolkit
 
-This skill helps you make iOS apps feel native on iPhone Duo, across the compact **outer** display (closed), the large **inner** display (open), every pose, and Split View multitasking. It's grounded only in Apple's pages; see `references/sources.md`. Never invent API names, SDK versions, tools or dimensions. If Apple doesn't document something, say so.
+This skill helps you make iOS apps feel native on iPhone Duo, across the compact **outer** display (closed), the large **inner** display (open), every pose, and Split View multitasking. Device facts come only from Apple's pages; see `references/sources.md`. Never invent API names, SDK versions, tools or dimensions. If Apple doesn't document something, say so. belweave's own layout practice is `references/fold-aware-layout.md`. It is separate from those pages, and it adds no fact Apple hasn't published.
 
 ## Route the task
 
 | The user wants to… | Do this |
 |---|---|
-| Understand the rules | Read the principles below, then `references/hig-summary.md` |
+| Understand the rules | Read the principles below, then `references/hig-summary.md`. belweave's layout practice is `references/fold-aware-layout.md` |
 | Find the exact API for something | `references/api-index.md`. Only name APIs listed there |
 | Scan a Swift project for problems | Run `scripts/duo-lint <paths>` (Python 3 stdlib). Add `--format json` for machine output and `--list-rules` for the rules. Confirm each finding by reading the code |
 | Write new SwiftUI or UIKit code | Start from `templates/` (see the table below) |
 | Migrate an existing app | Follow `references/migration-guide.md` step by step |
 | Check size-class branches in Xcode previews | `templates/swiftui/DuoPreviewMatrix.swift` |
 | Eyeball a screenshot with fold, side-control, Split View and arrangement overlays | Open `tools/duo-preview.html` in a browser (offline, no dependencies) |
+| Drop mockups on a drawn Duo and scrub the fold | Open `tools/fold-preview.html` (offline, no dependencies). Copy the file for one page per screen |
 | Test on the simulator or a device | `references/test-plan.md` (Device Hub, pose by pose) |
 | Review or grade a screen | `prompts/review-screen.md`, which drives `references/review-rubric.md` + `references/test-plan.md`. Designers can use `references/design-review-checklist.md` |
 | Ship the App Store product page (badge, screenshots, featuring, guidelines) | `references/app-store.md` |
@@ -71,7 +72,7 @@ From April 2027, a new App Store upload has to be built with the **iOS 27 SDK** 
 
 ## Core principles
 
-1. **Design for two size classes, not every pose.** Compact width is the outer display and regular width is the inner display (Tech Talk 111466). Outer portrait is compact/regular, outer landscape compact/compact, and inner regular/regular (Tech Talk 111461). Don't build a custom layout per pose.
+1. **Design for two size classes, not every pose.** Compact width is the outer display and regular width is the inner display (Tech Talk 111466). Outer portrait is compact/regular, outer landscape compact/compact, and inner regular/regular (Tech Talk 111461). Don't build a custom layout per pose: one narrow layout and one wide layout flex through closed, open, portrait, landscape, and Split View. Path order, panes, the toolbar, and reach are in `references/fold-aware-layout.md`.
 2. **Build freely resizable layouts.** Use layout margins, safe-area insets and size classes. Size relative to the container. Don't use fixed widths, `UIScreen.main`, `userInterfaceIdiom` or interface orientation for layout. The inner display doesn't honor supported orientations.
 3. **Keep one consistent experience.** The same functionality, controls and hierarchy appear on both displays. The inner display may add one hierarchy level. Never tie a feature to a pose.
 4. **Let the system put bars on the side.** Toolbars, tab bars and navigation controls go vertical everywhere except the inner display in portrait. Use navigation containers, give each item a title and a symbol, group items, set priorities, and use the system overflow menu.
@@ -82,16 +83,26 @@ From April 2027, a new App Store upload has to be built with the **iOS 27 SDK** 
 - [ ] Layout is driven by size classes and container bounds, with no orientation, idiom, main-screen, or hardcoded phone-size checks, and the size is read again when the window changes (`duo-lint` DUO001–004, DUO014, DUO016, DUO017)
 - [ ] No fixed widths; safe areas are handled per side (DUO002, DUO007)
 - [ ] Hero images and video choose fill or fit from the size class or aspect ratio, instead of an unconditional aspect fill (DUO015)
-- [ ] Bars come from navigation containers, each item has a title and a symbol, items are grouped and prioritized, and the system overflow menu is used (DUO005, DUO010–012)
+- [ ] Bars come from navigation containers, each item has a title and a symbol, items are grouped and prioritized, and the system overflow menu is used (DUO005, DUO010–012). Destructive actions, including Delete, are only in that menu (DUO019). Text and controls stay out from under the bar (DUO006)
 - [ ] Interactive custom views stay off active fold and camera regions, and grids are even (DUO008, DUO009)
 - [ ] `ignoresSafeArea` is used only on backgrounds (DUO006). Arrangements aren't nested in a List, ScrollView or NavigationSplitView (DUO013)
 - [ ] Sheets keep the default vertical bar unless it's a deliberate single-button opt-out
 - [ ] Built with Xcode 27.1 or later and the iOS 27.1 SDK. `UIDesignRequiresCompatibility` is absent, because the system ignores that key when you build for iOS 27 or later and the app can't opt out of Liquid Glass (DUO018)
-- [ ] Tested in **Device Hub** with the iPhone Duo simulator (Closed, Partially Open, Open, rotated, Split View on both sides, pinned PiP) and by resizing **iPhone Mirroring** on macOS 27
+- [ ] Tested in **Device Hub** with the iPhone Duo simulator (Closed, Partially Open, Open, rotated, Split View on both sides, pinned PiP), by resizing **iPhone Mirroring** on macOS 27, and on a real iPhone Duo before ship
 - [ ] App Store Connect has iPhone Duo screenshots, so the product page can show the optimized-for-iPhone-Duo badge (`references/app-store.md`)
 
 ## Not published by Apple (never hard-code or guess)
 Apple doesn't publish point dimensions, scale factor, safe-area or margin values, the side-control width, the folded fold width (it's zero when flat), or the camera region size. Read live values at runtime instead. Apple also never states the fold's axis in words; see `references/sources.md`.
+
+## Working method
+
+Use this while you design or review a screen. The layout rules are `references/fold-aware-layout.md`. Apple's facts stay in `references/hig-summary.md` and `references/sources.md`.
+
+1. **Compare several versions.** Draw more than one take on the idea and look at them side by side before you choose.
+2. **Preview the fold.** Open `tools/fold-preview.html` in a browser. It draws a Duo outline that opens and closes, with a slider for the fold angle and two slots for mockup images. Copy the file if you want one page per screen. It has no dependencies. For guides over a real screenshot, use `tools/duo-preview.html`.
+3. **Watch a recording twice.** Play it at full speed, then at quarter speed. The slow pass is where a jump, a late move, or a control that disappears shows up.
+4. **Leave the rules where the next session can read them.** Keep this skill, or the snippet in `install/AGENTS.md`, in the app repo, beside Apple's Duo guidance.
+5. **Test on hardware.** Iterate in Device Hub (`references/test-plan.md`). Before you ship, run the same flow on a real iPhone Duo.
 
 ## Liquid Glass on iOS 27
 

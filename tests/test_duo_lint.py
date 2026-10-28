@@ -142,6 +142,60 @@ class UnitTests(unittest.TestCase):
         self.assertEqual(self.scan(plist), [(1, "DUO018")])
         self.assertEqual(self.scan("// UIDesignRequiresCompatibility was removed\nlet x = 1\n"), [])
 
+    def test_duo006_text_under_safe_area(self):
+        self.assertEqual(self.scan('Text("Title").ignoresSafeArea()\n'), [(1, "DUO006")])
+        background = "ZStack {\n Text(\"Title\")\n}\n.background { Color.black.ignoresSafeArea() }\n"
+        self.assertEqual(self.scan(background), [])
+
+    def test_duo019_destructive_toolbar(self):
+        visible = (
+            ".toolbar {\n"
+            "    ToolbarItem {\n"
+            "        Button(\"Delete\", role: .destructive) { }\n"
+            "    }\n"
+            "}\n"
+        )
+        self.assertEqual(self.scan(visible), [(3, "DUO019")])
+        overflow = (
+            ".toolbar {\n"
+            "    ToolbarOverflowMenu {\n"
+            "        Button(\"Delete\", role: .destructive) { }\n"
+            "    }\n"
+            "}\n"
+        )
+        self.assertEqual(self.scan(overflow), [])
+        same_line = '.toolbar { Button("Delete", systemImage: "trash") { } }\n'
+        self.assertEqual(self.scan(same_line), [(1, "DUO019")])
+        content = 'Button("Delete", role: .destructive) { empty() }\n'
+        self.assertEqual(self.scan(content), [])
+        placement = (
+            ".toolbar {\n"
+            "    ToolbarItem(placement: .destructiveAction) {\n"
+            "        Button(\"Remove\", systemImage: \"archivebox\") { }\n"
+            "    }\n"
+            "}\n"
+        )
+        self.assertEqual(self.scan(placement), [(2, "DUO019")])
+
+    def test_duo019_uikit_bar_item(self):
+        inline = 'navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: nil)\n'
+        self.assertEqual(self.scan(inline), [(1, "DUO019")])
+        overflow = 'navigationItem.additionalOverflowItems = [UIBarButtonItem(title: "Delete", style: .plain, target: self, action: nil)]\n'
+        self.assertEqual(self.scan(overflow), [])
+        split = (
+            'let remove = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: nil)\n'
+            "navigationItem.rightBarButtonItem = remove\n"
+        )
+        self.assertEqual(self.scan(split), [(2, "DUO019")])
+        multiline = (
+            "navigationItem.leftBarButtonItem = UIBarButtonItem(\n"
+            "    barButtonSystemItem: .trash,\n"
+            "    target: self,\n"
+            "    action: nil\n"
+            ")\n"
+        )
+        self.assertEqual(self.scan(multiline), [(1, "DUO019")])
+
 
 class CLITests(unittest.TestCase):
     def run_cli(self, *args):
@@ -177,7 +231,7 @@ class CLITests(unittest.TestCase):
         r = self.run_cli("--list-rules")
         self.assertEqual(r.returncode, 0)
         self.assertIn("DUO013", r.stdout)
-        for rid in ("DUO014", "DUO015", "DUO016", "DUO017", "DUO018"):
+        for rid in ("DUO014", "DUO015", "DUO016", "DUO017", "DUO018", "DUO019"):
             self.assertIn(rid, r.stdout)
 
     def test_plist_file_is_scanned(self):
@@ -191,6 +245,22 @@ class CLITests(unittest.TestCase):
             data = json.loads(r.stdout)
             self.assertEqual(data["files"], 1)
             self.assertEqual([f["rule"] for f in data["findings"]], ["DUO018"])
+
+
+class FoldPreviewTests(unittest.TestCase):
+    def test_template_is_self_contained(self):
+        path = os.path.join(ROOT, "tools", "fold-preview.html")
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        lowered = text.lower()
+        self.assertIn('type="range"', lowered)
+        self.assertIn("fold angle", lowered)
+        self.assertGreaterEqual(lowered.count('type="file"'), 2)
+        self.assertGreaterEqual(lowered.count('data-slot="a"'), 1)
+        self.assertGreaterEqual(lowered.count('data-slot="b"'), 1)
+        self.assertIsNone(re.search(r"<script[^>]+src=", lowered))
+        self.assertIsNone(re.search(r"<link[^>]+href=", lowered))
+        self.assertNotIn("hark", lowered)
 
 
 if __name__ == "__main__":

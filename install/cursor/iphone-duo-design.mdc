@@ -7,6 +7,7 @@ alwaysApply: false
 - Follow the iPhone Duo skill in `.cursor/skills/iphone-duo-design/SKILL.md`, or wherever you installed it.
 - Branch layout on `horizontalSizeClass` / `verticalSizeClass` and container bounds. Don't use `UIScreen.main`, `userInterfaceIdiom`, interface orientation, or a hardcoded phone size. Regular width is not iPad.
 - Build the full Duo layout with Xcode 27.1 or later and the iOS 27.1 SDK. Remove `UIDesignRequiresCompatibility`; the system ignores it when you build for iOS 27 or later.
-- Use system bars from navigation containers. Give toolbar items a title and a symbol.
+- Use system bars from navigation containers. Give toolbar items a title and a symbol. Keep Delete, and any other destructive action, in the overflow menu (`ToolbarOverflowMenu` or `additionalOverflowItems`).
+- Follow `references/fold-aware-layout.md` for path order and pane pairs. Keep text and controls out from under the toolbar.
 - Keep custom interactive views off active `.division` reserved regions (`GeometryProxy.reservedRegions(kind:)` / `UIView.reservedRegions(kind:options:)`).
 - After editing Swift UI code, run `scripts/duo-lint` from the skill on the changed files.

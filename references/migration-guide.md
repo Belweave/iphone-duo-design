@@ -44,7 +44,7 @@ From April 2027, a new App Store upload has to be built with the iOS 27 SDK or l
 - Organize bar items for the vertical axis (`templates/*/VerticalBars.swift`):
   - Order: Close or Back, then the prominent action.
   - Every item gets a title and a symbol, and related items go in groups.
-  - Set visibility priorities and use the system overflow menu.
+  - Set visibility priorities and use the system overflow menu. Delete, and any other destructive action, goes only in that menu (`duo-lint` DUO019, `fold-aware-layout.md`).
   - Pick a compression behavior for task-oriented screens.
 - Read `toolbarVerticalEdge` / `verticalBarEdge` if a custom view has to sit relative to the vertical bar.
 - Let hero images extend under the vertical bar with `backgroundExtensionEffect()` / `UIBackgroundExtensionView`.
@@ -76,10 +76,12 @@ From April 2027, a new App Store upload has to be built with the iOS 27 SDK or l
 - Run the full `test-plan.md`, including resizable iPhone Mirroring and limited-width Live Activities. Score with `review-rubric.md`.
 - Capture iPhone Duo screenshots at Apple's sizes and upload them so the product page can show the optimized-for-iPhone-Duo badge. Read `references/app-store.md` for the April 2027 wording, which two Apple pages don't agree on, and for guidelines 2.3.14 and 2.5.19.
 - In a featuring nomination's Helpful Details, say the app supports every pose.
-- Sanity-check screenshots in `tools/duo-preview.html`.
+- Sanity-check screenshots in `tools/duo-preview.html`. For mockups, open `tools/fold-preview.html` and scrub the fold.
+- Run the ship pass on a real iPhone Duo as well as in Device Hub (`fold-aware-layout.md`, `test-plan.md`).
 
 ## Don'ts
-- Don't design a custom layout for each pose. Two size classes cover them all.
+- Don't design a custom layout for each pose. One narrow layout and one wide layout cover closed, open, portrait, landscape, and Split View.
+- Don't put Delete, or any other destructive action, on the visible toolbar (DUO019).
 - Don't tie functionality to a pose.
 - Don't hard-code iPhone Duo dimensions, inset values, fold widths, camera sizes, or a list of older phone point sizes. Apple doesn't publish Duo dimensions; read live values instead.
 - Don't leave an unconditional aspect fill on a hero image or video (DUO015).
