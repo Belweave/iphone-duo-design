@@ -3,7 +3,8 @@
 
 It is a heuristic, line-based checker (Python 3.8+ standard library only). It does not
 compile or type-check Swift, so treat every finding as "look here", not as proof.
-Each rule cites the Apple page it is based on; see references/sources.md.
+Each rule cites the Apple page it is based on, or references/fold-aware-layout.md
+when the rule is belweave's own practice. See references/sources.md.
 It scans .swift files and property lists (.plist), so UIDesignRequiresCompatibility
 in Info.plist is visible.
 
@@ -30,6 +31,7 @@ UISCREEN_MAIN = "https://developer.apple.com/documentation/uikit/uiscreen/main"
 PREPARE_PAGE = "https://developer.apple.com/iphone-duo/prepare/"
 COMPAT_KEY = "https://developer.apple.com/documentation/bundleresources/information-property-list/uidesignrequirescompatibility"
 LIQUID = "https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass"
+FOLD_LAYOUT = "references/fold-aware-layout.md"
 
 RULES = {
     "DUO001": dict(
@@ -77,9 +79,10 @@ RULES = {
     "DUO006": dict(
         name="safe-area-ignored-on-controls",
         severity="warning",
-        message="Safe area ignored on a view that appears to contain interactive controls. "
-                "Side controls and the outer camera can cover them.",
-        fix="Keep interactive foreground content inside the safe area; apply .ignoresSafeArea() only to "
+        message="Safe area ignored on a view that appears to contain text or controls. "
+                "The toolbar, side controls, or camera can cover them.",
+        fix="The content background may run under the toolbar so the bar and the panel share one color. "
+            "Keep text and controls inside the safe area, and apply .ignoresSafeArea() only to "
             "background layers (e.g. .background { Image(...).ignoresSafeArea() }).",
         source=TT_PREP + " ; " + HIG,
     ),
@@ -186,6 +189,15 @@ RULES = {
             "on bars, split views, and controls that would cover it.",
         source=COMPAT_KEY + " ; " + LIQUID,
     ),
+    "DUO019": dict(
+        name="destructive-outside-overflow",
+        severity="warning",
+        message="Destructive action ({value}) sits in the toolbar. Delete and other destructive actions "
+                "belong only in the overflow menu.",
+        fix="Move it into ToolbarOverflowMenu (SwiftUI) or navigationItem.additionalOverflowItems (UIKit). "
+            "Leave the visible toolbar for the actions this screen uses most.",
+        source=FOLD_LAYOUT + " ; " + HIG,
+    ),
 }
 
 SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}
@@ -287,6 +299,7 @@ P_FRAME_ASSIGN = re.compile(r"\b(\w+)\s*\.\s*frame\s*=\s*CGRect\s*\(")
 P_INTERACTIVE_NAME = re.compile(r"(?i)(button|control|toggle|slider|picker|field|switch|stepper)")
 P_INTERACTIVE_SWIFTUI = re.compile(
     r"\b(Button|Toggle|Slider|Stepper|Picker|TextField|SecureField|Menu|Link|DatePicker|ColorPicker|PasteButton|ShareLink)\s*[\({]")
+P_TEXT_VIEW = re.compile(r"\bText\s*\(")
 P_RESERVED = re.compile(r"\breservedRegions\s*\(|\bReservedRegion\b")
 P_ELLIPSIS_MENU = re.compile(r"\"ellipsis(?:\.circle(?:\.fill)?)?\"")
 P_TOOLBAR_OPEN = re.compile(r"\.toolbar\s*\{")
@@ -329,6 +342,27 @@ P_SIZE_CLASS_EQ = re.compile(r"horizontalSizeClass\s*==\s*\.(regular|compact)")
 P_PAD_SIGNAL = re.compile(r"userInterfaceIdiom[^\n]{0,40}\.pad|==\s*\.pad|\b(?:isIPad|isPad|iPadLayout)\b")
 P_PHONE_IDIOM = re.compile(r"userInterfaceIdiom\s*==\s*\.phone")
 P_COMPAT_KEY = re.compile(r"\bUIDesignRequiresCompatibility\b")
+P_OVERFLOW_OPEN = re.compile(r"\bToolbarOverflowMenu\s*\{")
+P_DESTRUCTIVE_TOOLBAR = re.compile(
+    r"role\s*:\s*\.destructive"
+    r"|\.destructiveAction\b"
+    r"|systemImage\s*:\s*\"trash(?:\.[A-Za-z0-9]+)*\""
+    r"|systemName\s*:\s*\"trash(?:\.[A-Za-z0-9]+)*\""
+    r"|\b(?:Button|Label)\s*\(\s*\"Delete\"",
+    re.I,
+)
+P_DESTRUCTIVE_BAR = re.compile(
+    r"barButtonSystemItem\s*:\s*\.trash"
+    r"|\bsystemItem\s*:\s*\.trash"
+    r"|SystemItem\s*\.\s*trash"
+    r"|title\s*:\s*\"Delete\""
+    r"|role\s*:\s*\.destructive",
+    re.I,
+)
+P_BAR_CTOR = re.compile(r"\b(?:let|var)\s+(\w+)\s*=\s*UIBarButtonItem\b")
+P_VISIBLE_BAR_ASSIGN = re.compile(
+    r"\b(?:toolbarItems|rightBarButtonItems?|leftBarButtonItems?|pinnedTrailingGroup)\s*="
+)
 
 
 def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
@@ -376,6 +410,54 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
             if label in label_set:
                 return label
         return None
+
+    def scope_names_before(line, column):
+        """Labels in effect just before `column` on this line, including braces earlier on it."""
+        local_depth = depth
+        local_stack = list(stack)
+        opens = []
+        for mt in P_TOOLBAR_OPEN.finditer(line):
+            opens.append((mt.end() - 1, "toolbar"))
+        for mt in P_OVERFLOW_OPEN.finditer(line):
+            opens.append((mt.end() - 1, "overflow"))
+        for mt in P_CONTAINER_OPEN.finditer(line):
+            opens.append((mt.end() - 1, mt.group(1)))
+        open_at = {}
+        for pos, label in opens:
+            open_at.setdefault(pos, []).append(label)
+        for ci, ch in enumerate(line):
+            if ci >= column:
+                break
+            if ch == "{":
+                local_depth += 1
+                for label in open_at.get(ci, []):
+                    local_stack.append((label, local_depth))
+            elif ch == "}":
+                while local_stack and local_stack[-1][1] >= local_depth:
+                    local_stack.pop()
+                local_depth = max(0, local_depth - 1)
+        return {label for label, _ in local_stack}
+
+    def span_from(start):
+        """This statement, following lines while () or [] stay open, up to 8 lines."""
+        depth_p = 0
+        end = start
+        for j in range(start, min(len(code), start + 8)):
+            depth_p += code[j].count("(") + code[j].count("[")
+            depth_p -= code[j].count(")") + code[j].count("]")
+            end = j
+            if depth_p <= 0:
+                break
+        return "\n".join(keep[start:end + 1]), "\n".join(code[start:end + 1])
+
+    destructive_bars = {}
+    flagged_019 = set()
+
+    def add019(idx, col, value):
+        if idx in flagged_019:
+            return
+        flagged_019.add(idx)
+        add("DUO019", idx, col, value)
 
     for idx, line in enumerate(code):
         kline = keep[idx]
@@ -435,7 +517,8 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
                     if bal >= 0 and st and not st.startswith(".") and not st.startswith("}"):
                         break
                     j -= 1
-            if P_INTERACTIVE_SWIFTUI.search("\n".join(window)):
+            window_text = "\n".join(window)
+            if P_INTERACTIVE_SWIFTUI.search(window_text) or P_TEXT_VIEW.search(window_text):
                 add("DUO006", idx, m.start())
 
         # DUO007
@@ -484,6 +567,32 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
             m = P_TEXT_BUTTON.search(kline)
             if m:
                 add("DUO011", idx, m.start())
+
+        # DUO019: destructive actions only in the overflow menu.
+        for m in P_DESTRUCTIVE_TOOLBAR.finditer(kline):
+            names = scope_names_before(line, m.start())
+            if "toolbar" in names and "overflow" not in names:
+                snippet = m.group(0)
+                if re.search(r"Delete", snippet, re.I):
+                    label = "Delete"
+                elif "trash" in snippet.lower():
+                    label = "trash"
+                else:
+                    label = "destructive"
+                add019(idx, m.start(), label)
+                break
+
+        ctor = P_BAR_CTOR.search(line)
+        if ctor and P_DESTRUCTIVE_BAR.search(kline):
+            destructive_bars[ctor.group(1)] = idx
+        if P_VISIBLE_BAR_ASSIGN.search(line) and "additionalOverflowItems" not in line:
+            span_k, span_c = span_from(idx)
+            if "additionalOverflowItems" not in span_c:
+                named = next((name for name in destructive_bars if re.search(r"\b" + re.escape(name) + r"\b", span_c)), None)
+                hit = P_DESTRUCTIVE_BAR.search(span_k)
+                if named or hit:
+                    add019(idx, P_VISIBLE_BAR_ASSIGN.search(line).start(), "Delete" if named or (hit and re.search(r"Delete", hit.group(0), re.I)) else "trash")
+        destructive_bars = {name: seen for name, seen in destructive_bars.items() if idx - seen <= 12}
 
         # DUO012
         m = P_FIXED_SPACE.search(line)
@@ -554,6 +663,8 @@ def scan_text(text, path="<input>", min_width=200, disabled=frozenset()):
         opens = []
         for mt in P_TOOLBAR_OPEN.finditer(line):
             opens.append((mt.end() - 1, "toolbar"))
+        for mt in P_OVERFLOW_OPEN.finditer(line):
+            opens.append((mt.end() - 1, "overflow"))
         for mt in P_CONTAINER_OPEN.finditer(line):
             opens.append((mt.end() - 1, mt.group(1)))
         open_labels = dict(opens)

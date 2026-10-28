@@ -5,6 +5,8 @@ connections: [patterns, sources, api-index]
 
 # iPhone Duo guidance summary
 
+belweave's layout practice (path, panes, toolbar length, reach, and gutters) is in [`fold-aware-layout.md`](fold-aware-layout.md). That file is not an Apple source. The notes below stay limited to Apple's pages.
+
 Source tags:
 - **[HIG]** [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo)
 - **[PREP]** [Preparing your app for iPhone Duo](https://developer.apple.com/documentation/technologyoverviews/preparing-your-app-for-iphone-duo)

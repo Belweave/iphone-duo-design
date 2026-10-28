@@ -19,6 +19,7 @@ struct GoodRootView: View {
                     }
                     ToolbarOverflowMenu {
                         Button("Export", systemImage: "square.and.arrow.up") { }
+                        Button("Delete", role: .destructive) { }
                     }
                 }
         }

@@ -22,6 +22,9 @@ struct BadFeedView: View {
                     Button("Save") { } // expect: DUO011
                 }
                 ToolbarItem {
+                    Button("Delete", role: .destructive) { } // expect: DUO019
+                }
+                ToolbarItem {
                     Menu {
                         Button("Share", systemImage: "square.and.arrow.up") { }
                     } label: {
@@ -109,4 +112,11 @@ struct BadIdiomSizeClass: View {
 
 enum BadCompatibility {
     static let key = "UIDesignRequiresCompatibility" // expect: DUO018
+}
+
+struct BadTitleUnderBar: View {
+    var body: some View {
+        Text("Title")
+            .ignoresSafeArea() // expect: DUO006
+    }
 }

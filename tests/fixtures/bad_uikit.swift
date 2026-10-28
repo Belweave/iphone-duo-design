@@ -14,6 +14,7 @@ final class BadViewController: UIViewController {
         }
         let spacer = UIBarButtonItem.fixedSpace(16) // expect: DUO012
         toolbarItems = [spacer]
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .trash, target: self, action: #selector(viewDidLoad)) // expect: DUO019
     }
 
     override func viewDidLayoutSubviews() {

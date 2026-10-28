@@ -29,6 +29,17 @@ connections: [hig-summary, api-index]
 
 Choosing between arrangements (Tech Talk 111463): pick **overlay** when there's a clear foreground and background, and partly covering scrollable content is acceptable. Pick **split** for a main and detail pair where neither should be covered.
 
+## Across the fold
+
+The prose is in `references/fold-aware-layout.md`. These rows are the parts that map to a template.
+
+| What you're doing | What happens | Template |
+|---|---|---|
+| Sidebar with content, or content with detail | The only side-by-side pairs. The detail pane carries a Close of its own | `templates/*/SplitViewCollapse.swift` |
+| Unfold while a detail is open | That detail sits beside its parent. The path order stays as it was | `templates/*/SplitViewCollapse.swift` |
+| Full screen | One button enters full screen, and the same button leaves it | — |
+| Open a list on the open phone | The list is on the left. Current content stays on the right until a row is picked. A sidebar hides an open detail and brings it back when the sidebar closes | `templates/*/SplitViewCollapse.swift` |
+
 ## Fold displacement [Tech Talk 111463]
 - Move one element on its own if it can adapt independently. Move a group together if its parts work together.
 - Avoid moving elements far from where they started.
